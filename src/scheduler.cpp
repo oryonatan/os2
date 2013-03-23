@@ -1,11 +1,25 @@
 #include "scheduler.h"
 
 void Scheduler::updateRunning() {
-	moveThread(move(threads.readyQueue.front()),RUNNING);
+	this->quanta++;
+	//TODO - check if there is a sleeping process that should become the running
+	//if someSleepingThreadShouldBeResumed {
+	// resumeTopSleeping();
+	//else{
+	if(!threads.readyQueue.empty()){
+		moveThread(move(threads.readyQueue.front()),RUNNING);
+	}
 }
 
 bool Scheduler::setTimeInterval(int quantom_usecs) {
 	this->quantom_usecs = quantom_usecs;
+}
+
+state Scheduler::hasThread(int TID) {
+//	auto iter = this->usedThreads.find(TID);
+//	if (i)
+//	return (iter->first );
+
 }
 
 void Scheduler::cleanEmptyThreads(state originalState= NONE_SPECIFIED) {

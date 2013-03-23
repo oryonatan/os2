@@ -12,7 +12,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <sys/time.h>
-
+#include <unordered_map> >
 using namespace std;
 
 enum state {
@@ -26,6 +26,7 @@ struct Thread {
 	state threadState;
 	unsigned int id;
 	sigjmp_buf env;
+	long sleepQuantoms;
 
 	Thread() :
 		//TODO ID should be incremental , should accept functor
@@ -58,6 +59,7 @@ struct ThreadsStruct {
 	}
 };
 
+
 class Scheduler {
 public:
 
@@ -67,7 +69,11 @@ public:
 	void updateRunning();
 	//Moves a thread to the appropriate list
 	void moveThread(unique_ptr<Thread>, state);
+	state hasThread(int);
 private:
+	//we can use this to tell if a thread exists
+	unordered_map <int,state> usedThreads;
+	long quanta;
 	int quantom_usecs;
 	void setRunningThread(unique_ptr<Thread>);
 	//Cleans empty pointers to moved/deleted threads

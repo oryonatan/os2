@@ -24,14 +24,17 @@ int uthread_terminate(int tid) {
 }
 
 int uthread_suspend(int tid) {
+	//TODO implement suspend by TID
 	return 0;
 }
 
 int uthread_resume(int tid) {
+	//TODO implement resume by TID
 	return 0;
 }
 
 int uthread_sleep(int num_quantums) {
+
 	return 0;
 }
 
