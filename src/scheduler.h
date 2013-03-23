@@ -62,7 +62,6 @@ class Scheduler {
 public:
 
 	ThreadsStruct threads;
-	;
 	bool setTimeInterval(int);
 	void terminateThread(unique_ptr<Thread> );
 	void updateRunning();
