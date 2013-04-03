@@ -4,15 +4,12 @@
 Scheduler * sched = new Scheduler();
 
 int uthread_init(int quantum_usecs) {
-	//TODO can it fail?
-	if (sched->setTimeInterval(quantum_usecs))
-		return OK;
-	return FAIL;
+	sched->setup (quantum_usecs);
 }
 
 int uthread_spawn(void (*f)(void)) {
 	///TODO should initialize with a pointer to function
-	unique_ptr<Thread> th(new Thread());
+	unique_ptr<Thread> th(new Thread(f));
 	sched->moveThread(move(th),READY);
 	//TODO check return value
 	return 0;

@@ -4,15 +4,19 @@
 #define OK 0
 #define FAIL -1
 #define STACK_SIZE 4096
+#define MAX_THREAD_NUM 100
 #include <iostream>
 #include <list>
 #include <memory>
 #include <set>
 #include <setjmp.h>
 #include <signal.h>
+#include <utility>
 #include <unistd.h>
 #include <sys/time.h>
-#include <unordered_map> >
+#include <stdexcept>
+#include <unordered_map>
+#include <assert.h>
 using namespace std;
 
 enum state {
@@ -20,17 +24,24 @@ enum state {
 };
 
 typedef char stackMem[STACK_SIZE];
+typedef void (*thread_functor)(void);
 
 struct Thread {
 	stackMem stack;
 	state threadState;
 	unsigned int id;
+	thread_functor action;
 	sigjmp_buf env;
 	long sleepQuantoms;
 
-	Thread() :
-		//TODO ID should be incremental , should accept functor
-			stack(), threadState(READY),id(rand()) {
+	static unsigned int thread_id;
+
+	Thread(thread_functor func, int threadID):
+			stack(), threadState(READY), id(threadID), action(func) {
+		//TODO if the number of threads exceeds the limit, delete the stack
+		// and throw an exception
+		//the id is done inside the scheduler - is it a good idea?
+
 		cout << "Thread created : "<< id << endl;
 
 	};
@@ -42,16 +53,18 @@ struct Thread {
 	}
 };
 
+unsigned int Thread::thread_id = 0;
+
 //A struct for holding all the threads
-//Usage of unique_ptr prevents a case that the same thread exists in two different states.
 struct ThreadsStruct {
 	ThreadsStruct() :
 			readyQueue(), suspended(), sleeping() {
+		//TODO: create the main thread with ID=0
 	}
-	unique_ptr<Thread> running;
-	list<unique_ptr<Thread>> readyQueue;
-	set<unique_ptr<Thread>> suspended;
-	set<unique_ptr<Thread>> sleeping;
+	shared_ptr<Thread> running;
+	list<shared_ptr<Thread>> readyQueue;
+	set<shared_ptr<Thread>> suspended;
+	set<shared_ptr<Thread>> sleeping;
 	~ThreadsStruct(){
 		readyQueue.clear();
 		suspended.clear();
@@ -64,20 +77,34 @@ class Scheduler {
 public:
 
 	ThreadsStruct threads;
-	bool setTimeInterval(int);
-	void terminateThread(unique_ptr<Thread> );
-	void updateRunning();
+	//sets the scheduler at the library initialization
+	void setup (int  quantumLength);
+	shared_ptr<Thread> getThread (int tid);
+	int spawnThread(thread_functor func);
+	int terminateThread(shared_ptr<Thread>& targetThread);
+	int suspendThread (shared_ptr<Thread>& targetThread);
+	int sleepThread (int quantumNum);
+	void quantumUpdate(int sig);
 	//Moves a thread to the appropriate list
-	void moveThread(unique_ptr<Thread>, state);
-	state hasThread(int);
+	void moveThread(shared_ptr<Thread>, state);
+
+	//blocking and unblocking signals during performing an operation
+	void blockSignals();
+	void unblockSignals();
+
 private:
-	//we can use this to tell if a thread exists
-	unordered_map <int,state> usedThreads;
+	//we use this to fetch the threads by their id
+	unordered_map <int,shared_ptr<Thread> > usedThreads;
 	long quanta;
 	int quantom_usecs;
-	void setRunningThread(unique_ptr<Thread>);
+	//sets the mask for signal blocking
+	void setMask();
+	void startTimer();
+	int allocateID();
+	void setRunningThread(shared_ptr<Thread>);
 	//Cleans empty pointers to moved/deleted threads
 	void cleanEmptyThreads(state);
+	void eraseFromState (state originalState, shared_ptr<Thread> threadToErase)
 };
 
 #endif
