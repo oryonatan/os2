@@ -3,8 +3,11 @@
 
 #define OK 0
 #define FAIL -1
+#define SYSTEM_ERROR -2
+#define MAIN_THREAD_ID  0
 #define STACK_SIZE 4096
 #define MAX_THREAD_NUM 100
+#define USECS_IN_SEC 1000000
 #include <iostream>
 #include <list>
 #include <memory>
@@ -17,6 +20,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <assert.h>
+#define NOT_SIGALARM  SIGVTALRM + 1
 using namespace std;
 
 enum state {
@@ -75,12 +79,13 @@ struct ThreadsStruct {
 
 class Scheduler {
 public:
+	//TODO - do we need a destructor (erase used_threads etc.)
 
 	ThreadsStruct threads;
 	//sets the scheduler at the library initialization
-	void setup (int  quantumLength);
+	int setup (int  quantumLength);
+	void setQuantumLength (int quantum_usecs);
 	shared_ptr<Thread> getThread (int tid);
-	int spawnThread(thread_functor func);
 	int terminateThread(shared_ptr<Thread>& targetThread);
 	int suspendThread (shared_ptr<Thread>& targetThread);
 	int sleepThread (int quantumNum);
@@ -88,6 +93,9 @@ public:
 	//Moves a thread to the appropriate list
 	void moveThread(shared_ptr<Thread>, state);
 
+	//sets the mask for signal blocking
+	int setMask();
+	int startTimer(int quantum_usec);
 	//blocking and unblocking signals during performing an operation
 	void blockSignals();
 	void unblockSignals();
@@ -97,10 +105,12 @@ private:
 	unordered_map <int,shared_ptr<Thread> > usedThreads;
 	long quanta;
 	int quantom_usecs;
-	//sets the mask for signal blocking
-	void setMask();
-	void startTimer();
+	sigset_t mask;
+	struct itimerval tv;
+	struct sigaction action;
 	int allocateID();
+	//resets the timer in case the threads were switched before a quantum expired
+	int resetTimer();
 	void setRunningThread(shared_ptr<Thread>);
 	//Cleans empty pointers to moved/deleted threads
 	void cleanEmptyThreads(state);
