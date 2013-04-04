@@ -9,14 +9,18 @@ void Scheduler::unblockSignals() {
 }
 
 int Scheduler::allocateID() {
-	for (int i = 1; i < MAX_THREAD_NUM; i++) {
-		try {
-			shared_ptr<Thread> temp = usedThreads.at(i);
+	for (int id = 1; id < MAX_THREAD_NUM; id++) {
+		if (usedThreads.find(id) == usedThreads.end())
+		{
+			return id;
 		}
-
-		catch (out_of_range&) {
-			return i;
-		}
+//		try {
+//			shared_ptr<Thread> temp = usedThreads.at(i);
+//		}
+//
+//		catch (out_of_range&) {
+//			return i;
+//		}
 	}
 
 	return FAIL;
@@ -72,6 +76,8 @@ void Scheduler::eraseFromState(state originalState,
 		break;
 	case SLEEPING:
 		threads.sleeping.erase(threadToErase);
+		break;
+	case NONE_SPECIFIED:
 		break;
 
 	}
