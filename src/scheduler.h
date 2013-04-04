@@ -111,7 +111,7 @@ private:
 //First initialize a scheduler , we need time handler to be static!
 static Scheduler * schd = new Scheduler();
 //calls sched quatomupdate (sched.quantomUpdate is not static);
-static int timeHandler(int signum);
+static int timeHandler(int);
 
 #endif
 

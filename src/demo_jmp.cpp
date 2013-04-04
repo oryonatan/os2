@@ -94,7 +94,6 @@ void schdSwitchThreads(void)
   }
 //  schd->updateRunning();
   siglongjmp(schd->threads.running->env,1);
-
 }
 
 

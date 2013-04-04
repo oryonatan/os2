@@ -116,8 +116,17 @@ shared_ptr<Thread> Scheduler::getThread(int tid) {
 }
 
 
-static int timeHandler(int signum) {
-	return schd->quantumUpdate(signum);
+static void timeHandler(int signum) {
+	//TODO I'm not quite sure this works , I want to set the jump
+	//to the current thread
+	int ret_val = sigsetjmp(schd->threads.running->env,1);
+	  if (ret_val == 1) {
+	      return;
+	  }
+	schd->quantumUpdate(signum);
+	//the running thread should may be changed now , if it wasn't we will
+	//jump to the same location (I think , this really hasn't been tested
+	siglongjmp(schd->threads.running->env,1);
 };
 
 void Scheduler::eraseFromState(state originalState,
@@ -283,5 +292,19 @@ Thread::Thread(thread_functor func, int threadID):
 	(this->env->__jmpbuf)[JB_PC] = translate_address(pc);
 	sigemptyset(&this->env->__saved_mask);
 	cout << "Thread created : "<< id << endl;
+}
+
+
+
+void schdSwitchThreads(void)
+{
+  int ret_val = sigsetjmp(schd->threads.running->env,1);
+
+  printf("SWITCH: ret_val=%d\n", ret_val);
+  if (ret_val == 1) {
+      return;
+  }
+//  schd->updateRunning();
+  siglongjmp(schd->threads.running->env,1);
 }
 
