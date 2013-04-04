@@ -38,7 +38,6 @@ struct Thread {
 	sigjmp_buf env;
 	long sleepQuantoms;
 
-	static unsigned int thread_id;
 
 	Thread(thread_functor func, int threadID):
 			stack(), threadState(READY), id(threadID), action(func) {
@@ -57,7 +56,6 @@ struct Thread {
 	}
 };
 
-unsigned int Thread::thread_id = 0;
 
 //A struct for holding all the threads
 struct ThreadsStruct {
@@ -89,7 +87,7 @@ public:
 	int terminateThread(shared_ptr<Thread>& targetThread);
 	int suspendThread (shared_ptr<Thread>& targetThread);
 	int sleepThread (int quantumNum);
-	void quantumUpdate(int sig);
+	int quantumUpdate(int sig);
 	//Moves a thread to the appropriate list
 	void moveThread(shared_ptr<Thread>, state);
 	int spawnThread(thread_functor);
@@ -101,15 +99,17 @@ public:
 	void blockSignals();
 	void unblockSignals();
 
+	int allocateID();
+	unordered_map <int,shared_ptr<Thread> > usedThreads;
 private:
 	//we use this to fetch the threads by their id
-	unordered_map <int,shared_ptr<Thread> > usedThreads;
+
 	long quanta;
 	int quantom_usecs;
 	sigset_t mask;
 	struct itimerval tv;
 	struct sigaction action;
-	int allocateID();
+
 	//resets the timer in case the threads were switched before a quantum expired
 	int resetTimer();
 	void setRunningThread(shared_ptr<Thread>);
@@ -117,6 +117,12 @@ private:
 	void cleanEmptyThreads(state);
 	void eraseFromState (state originalState, shared_ptr<Thread> threadToErase);
 };
+
+
+//First initialize a scheduler , we need time handler to be static!
+static Scheduler * schd = new Scheduler();
+//calls sched quatomupdate (sched.quantomUpdate is not static);
+static int timeHandler(int signum);
 
 #endif
 

@@ -23,8 +23,7 @@ int Scheduler::allocateID() {
 
 }
 
-void Scheduler::quantumUpdate(int sig) {
-
+int Scheduler::quantumUpdate(int sig) {
 	this->quanta++;
 	for (shared_ptr<Thread> thread : threads.sleeping) {
 		thread->sleepQuantoms--;
@@ -53,6 +52,11 @@ shared_ptr<Thread> Scheduler::getThread(int tid) {
 
 	return result;
 }
+
+
+static int timeHandler(int signum) {
+	return schd->quantumUpdate(signum);
+};
 
 void Scheduler::eraseFromState(state originalState,
 		shared_ptr<Thread> threadToErase) {
@@ -107,7 +111,7 @@ void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
 		break;
 	}
 
-	assert(th.use_count <= COPIES_ALLOWED);
+//	assert(th.use_count <= COPIES_ALLOWED);
 }
 
 int Scheduler::spawnThread(thread_functor func) {
@@ -151,8 +155,7 @@ int Scheduler::setMask() {
 }
 
 int Scheduler::startTimer(int quantum_usec) {
-	//TODO?
-	action.sa_handler = quantumUpdate(0);
+	action.sa_handler =  (__sighandler_t)timeHandler;
 
 	if (sigemptyset(&action.sa_mask)) {
 		cerr << "system error: could not set an empty signal mask"	<< endl;

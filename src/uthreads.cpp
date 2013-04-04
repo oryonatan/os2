@@ -1,26 +1,24 @@
 #include "uthreads.h"
 #include "scheduler.h"
 
-Scheduler * sched = new Scheduler();
 
 //performed in the case of system error;
-//does the clenup and frees the memory
+//does the cleanup and frees the memory
 int shutDown ()
 {
-	delete sched;
 	exit(1);
 }
 
 int uthread_init(int quantum_usecs) {
 
-	sched->setQuantumLength(quantum_usecs);
+	schd->setQuantumLength(quantum_usecs);
 	//creating the main thread
-	sched->usedThreads[MAIN_THREAD_ID] = shared_ptr<Thread> (NULL, MAIN_THREAD_ID);
-	sched->threads.running = sched->usedThreads[MAIN_THREAD_ID];
+	schd->usedThreads.at(MAIN_THREAD_ID) = shared_ptr<Thread> (new Thread(NULL, MAIN_THREAD_ID));
+	schd->threads.running = schd->usedThreads[MAIN_THREAD_ID];
 	//TODO - what happens to the stack when we start the main thread running
-	if (sched->setMask() || sched->startTimer(quantum_usecs))
+	if (schd->setMask() || schd->startTimer(quantum_usecs))
 	{
-		shutDown();
+		exit(1);
 	}
 
 	return OK;
@@ -28,48 +26,48 @@ int uthread_init(int quantum_usecs) {
 
 int uthread_spawn(void (*f)(void)) {
 //TODO - not sure we should put it here
-	sched -> blockSignals;
+	schd -> blockSignals();
 
-	int id = sched->allocateID;
+	int id = schd->allocateID();
 	if (id == FAIL)
 		{
 			cerr << "thread library error: maximum thread number exceeded" << endl;
 			return FAIL;
 		}
 
-	sched->usedThreads[id] = shared_ptr<Thread> (new Thread(f, id));
-	sched->threads.readyQueue.push_back(sched->usedThreads[id]);
+	schd->usedThreads[id] = shared_ptr<Thread> (new Thread(f, id));
+	schd->threads.readyQueue.push_back(schd->usedThreads[id]);
 
-	sched ->unblockSignals();
+	schd ->unblockSignals();
 	return OK;
 }
 
 int uthread_terminate(int tid) {
-	sched->blockSignals();
+	schd->blockSignals();
 
-	shared_ptr<Thread> th= sched->getThread(tid);
+	shared_ptr<Thread> th= schd->getThread(tid);
 	if ( th == NULL)
 	{
 		cerr << "thread library error: thread not found" <<endl;
-		sched -> unblockSignals();
+		schd -> unblockSignals();
 		return FAIL;
 	}
 
 	if (tid == MAIN_THREAD_ID)
 	{
 		//TODO - anything else needed in this case?
-		delete sched;
+		delete schd;
 		exit(0);
 	}
 
-	if (sched->terminateThread(th))
+	if (schd->terminateThread(th))
 	{
 		//TODO - check if a function could not terminate because of
 		//thread library error
 		shutDown();
 	}
 
-	sched->unblockSignals();
+	schd->unblockSignals();
 	return 0;
 }
 

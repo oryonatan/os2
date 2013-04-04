@@ -18,7 +18,7 @@
 #define SECOND 1000000
 #define STACK_SIZE 4096
 
-Scheduler * schd;
+//Scheduler * schd;
 
 void timer_handler(int);
 
