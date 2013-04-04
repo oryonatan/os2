@@ -37,18 +37,18 @@ typedef unsigned long address_t;
 
 
 
-
-/* A translation is required when using an address of a variable.
-   Use this as a black box in your code. */
-address_t translate_address(address_t addr)
-{
-    address_t ret;
-    asm volatile("xor    %%fs:0x30,%0\n"
-		"rol    $0x11,%0\n"
-                 : "=g" (ret)
-                 : "0" (addr));
-    return ret;
-}
+//
+///* A translation is required when using an address of a variable.
+//   Use this as a black box in your code. */
+//address_t translate_address(address_t addr)
+//{
+//    address_t ret;
+//    asm volatile("xor    %%fs:0x30,%0\n"
+//		"rol    $0x11,%0\n"
+//                 : "=g" (ret)
+//                 : "0" (addr));
+//    return ret;
+//}
 
 #else
 /* code for 32 bit Intel arch */
@@ -83,6 +83,7 @@ void switchThreads(void)
   currentThread = 1 - currentThread;
   siglongjmp(env[currentThread],1);
 }
+
 void schdSwitchThreads(void)
 {
   int ret_val = sigsetjmp(schd->threads.running->env,1);
@@ -187,7 +188,7 @@ void schdSetup()
 //	sp = (address_t) gThread->stack + STACK_SIZE - sizeof(address_t);
 //	pc = (address_t) g;
 //	sigsetjmp(gThread->env, 1);
-//	(gThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
+//		(gThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
 //	(gThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
 //	sigemptyset(&gThread->env->__saved_mask);
 //	schd->moveThread(move(gThread),READY);

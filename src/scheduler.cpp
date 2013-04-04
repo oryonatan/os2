@@ -1,4 +1,62 @@
 #include "scheduler.h"
+////////////////////////////////////////////////////////////////////////
+/*				OS STUFF FROM DEMO_JUMP.cpp							////
+ * /////////////////////////////////////////////////////////////////////
+we should probably split to Thread.h/Thread.cpp
+but meanwhile it's here
+*/
+#include <signal.h>
+#include <setjmp.h>
+#include <unistd.h>
+
+#ifdef __x86_64__
+/* code for 64 bit Intel arch */
+
+typedef unsigned long address_t;
+#define JB_SP 6
+#define JB_PC 7
+
+
+
+
+/* A translation is required when using an address of a variable.
+   Use this as a black box in your code. */
+address_t translate_address(address_t addr)
+{
+    address_t ret;
+    asm volatile("xor    %%fs:0x30,%0\n"
+		"rol    $0x11,%0\n"
+                 : "=g" (ret)
+                 : "0" (addr));
+    return ret;
+}
+
+#else
+/* code for 32 bit Intel arch */
+
+typedef unsigned int address_t;
+#define JB_SP 4
+#define JB_PC 5
+
+/* A translation is required when using an address of a variable.
+   Use this as a black box in your code. */
+static address_t translate_address(address_t addr)
+{
+    address_t ret;
+    asm volatile("xor    %%gs:0x18,%0\n"
+		"rol    $0x9,%0\n"
+                 : "=g" (ret)
+                 : "0" (addr));
+    return ret;
+}
+
+#endif
+
+////////////////////////////////////////////////////////////////////////
+//		ENDOF OS STUFF FROM DEMO_JUMP.cpp							////
+////////////////////////////////////////////////////////////////////////
+
+
 //For debug purposes: the number of allowed shared pointers owning the thread
 #define COPIES_ALLOWED 3
 
@@ -204,6 +262,26 @@ int Scheduler::resetTimer ()
 
 	return OK;
 
+}
 
+
+Thread::Thread(thread_functor func, int threadID):
+		stack(),
+		threadState(READY),
+		id(threadID),
+		action(func),
+		sleepQuantoms(0) {
+	//TODO if the number of threads exceeds the limit, delete the stack
+	// and throw an exception
+	//the id is done inside the scheduler - is it a good idea?
+	address_t sp, pc;
+	//why 1?
+	sp = (address_t) this->stack + STACK_SIZE - sizeof(address_t);
+	pc = (address_t) func;
+	sigsetjmp(this->env,1);
+	(this->env->__jmpbuf)[JB_SP] = translate_address(sp);
+	(this->env->__jmpbuf)[JB_PC] = translate_address(pc);
+	sigemptyset(&this->env->__saved_mask);
+	cout << "Thread created : "<< id << endl;
 }
 

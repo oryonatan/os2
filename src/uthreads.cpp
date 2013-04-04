@@ -10,7 +10,6 @@ int shutDown ()
 }
 
 int uthread_init(int quantum_usecs) {
-
 	schd->setQuantumLength(quantum_usecs);
 	//creating the main thread
 	schd->usedThreads.at(MAIN_THREAD_ID) = shared_ptr<Thread> (new Thread(NULL, MAIN_THREAD_ID));
@@ -82,7 +81,6 @@ int uthread_resume(int tid) {
 }
 
 int uthread_sleep(int num_quantums) {
-
 	return 0;
 }
 

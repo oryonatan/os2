@@ -31,24 +31,14 @@ typedef char stackMem[STACK_SIZE];
 typedef void (*thread_functor)(void);
 
 struct Thread {
+	Thread(thread_functor func, int threadID);
+
 	stackMem stack;
 	state threadState;
 	unsigned int id;
 	thread_functor action;
 	sigjmp_buf env;
 	long sleepQuantoms;
-
-
-	Thread(thread_functor func, int threadID):
-			stack(), threadState(READY), id(threadID), action(func) {
-		//TODO if the number of threads exceeds the limit, delete the stack
-		// and throw an exception
-		//the id is done inside the scheduler - is it a good idea?
-
-		cout << "Thread created : "<< id << endl;
-
-	};
-
 
 	~Thread() {
 		delete(stack);
@@ -103,7 +93,6 @@ public:
 	unordered_map <int,shared_ptr<Thread> > usedThreads;
 private:
 	//we use this to fetch the threads by their id
-
 	long quanta;
 	int quantom_usecs;
 	sigset_t mask;
@@ -113,8 +102,8 @@ private:
 	//resets the timer in case the threads were switched before a quantum expired
 	int resetTimer();
 	void setRunningThread(shared_ptr<Thread>);
+
 	//Cleans empty pointers to moved/deleted threads
-	void cleanEmptyThreads(state);
 	void eraseFromState (state originalState, shared_ptr<Thread> threadToErase);
 };
 
