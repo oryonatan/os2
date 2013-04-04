@@ -207,8 +207,7 @@ void timer_handler(int sig)
 	cout<<"time!"<<endl;
 	schdSwitchThreads();
 }
-int main(void)
-{
+int main(void){
 //  setup();
 //  schd = new Scheduler(2);
 //  schdSetup();
