@@ -91,7 +91,7 @@ void schdSwitchThreads(void)
   if (ret_val == 1) {
       return;
   }
-  schd->updateRunning();
+//  schd->updateRunning();
   siglongjmp(schd->threads.running->env,1);
 
 }
@@ -172,34 +172,34 @@ void setup(void)
 }
 void schdSetup()
 {
-	address_t sp, pc;
-
-	unique_ptr<Thread> fThread = (unique_ptr<Thread>)new Thread();
-	sp = (address_t) fThread->stack + STACK_SIZE - sizeof(address_t);
-	pc = (address_t) f;
-	sigsetjmp(fThread->env, 1);
-	(fThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
-	(fThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
-	sigemptyset(&fThread->env->__saved_mask);
-	schd->moveThread(move(fThread),RUNNING);
-
-	unique_ptr<Thread> gThread = (unique_ptr<Thread>)new Thread();
-	sp = (address_t) gThread->stack + STACK_SIZE - sizeof(address_t);
-	pc = (address_t) g;
-	sigsetjmp(gThread->env, 1);
-	(gThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
-	(gThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
-	sigemptyset(&gThread->env->__saved_mask);
-	schd->moveThread(move(gThread),READY);
-
-	unique_ptr<Thread> hThread = (unique_ptr<Thread>)new Thread();
-	sp = (address_t) hThread->stack + STACK_SIZE - sizeof(address_t);
-	pc = (address_t) h;
-	sigsetjmp(hThread->env, 1);
-	(hThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
-	(hThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
-	sigemptyset(&hThread->env->__saved_mask);
-	schd->moveThread(move(hThread),READY);
+//	address_t sp, pc;
+//
+//	unique_ptr<Thread> fThread = (unique_ptr<Thread>)new Thread();
+//	sp = (address_t) fThread->stack + STACK_SIZE - sizeof(address_t);
+//	pc = (address_t) f;
+//	sigsetjmp(fThread->env, 1);
+//	(fThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
+//	(fThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
+//	sigemptyset(&fThread->env->__saved_mask);
+//	schd->moveThread(move(fThread),RUNNING);
+//
+//	unique_ptr<Thread> gThread = (unique_ptr<Thread>)new Thread();
+//	sp = (address_t) gThread->stack + STACK_SIZE - sizeof(address_t);
+//	pc = (address_t) g;
+//	sigsetjmp(gThread->env, 1);
+//	(gThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
+//	(gThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
+//	sigemptyset(&gThread->env->__saved_mask);
+//	schd->moveThread(move(gThread),READY);
+//
+//	unique_ptr<Thread> hThread = (unique_ptr<Thread>)new Thread();
+//	sp = (address_t) hThread->stack + STACK_SIZE - sizeof(address_t);
+//	pc = (address_t) h;
+//	sigsetjmp(hThread->env, 1);
+//	(hThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
+//	(hThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
+//	sigemptyset(&hThread->env->__saved_mask);
+//	schd->moveThread(move(hThread),READY);
 }
 
 void timer_handler(int sig)

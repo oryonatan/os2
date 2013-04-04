@@ -92,6 +92,7 @@ public:
 	void quantumUpdate(int sig);
 	//Moves a thread to the appropriate list
 	void moveThread(shared_ptr<Thread>, state);
+	int spawnThread(thread_functor);
 
 	//sets the mask for signal blocking
 	int setMask();
@@ -114,7 +115,7 @@ private:
 	void setRunningThread(shared_ptr<Thread>);
 	//Cleans empty pointers to moved/deleted threads
 	void cleanEmptyThreads(state);
-	void eraseFromState (state originalState, shared_ptr<Thread> threadToErase)
+	void eraseFromState (state originalState, shared_ptr<Thread> threadToErase);
 };
 
 #endif

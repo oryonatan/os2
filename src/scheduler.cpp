@@ -61,7 +61,7 @@ void Scheduler::eraseFromState(state originalState,
 		threads.running.reset();
 		break;
 	case READY:
-		threads.readyQueue.remove(threadToErase)
+		threads.readyQueue.remove(threadToErase);
 		break;
 	case SUSPENDED:
 		threads.suspended.erase(threadToErase);
@@ -101,7 +101,7 @@ void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
 		threads.sleeping.insert(move(th));
 		break;
 	case TERMINATED:
-		terminateThread(move(th));
+		//TODO?terminateThread(move(th));
 		break;
 	default:
 		break;
@@ -111,7 +111,7 @@ void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
 }
 
 int Scheduler::spawnThread(thread_functor func) {
-	int id = allocateID;
+	int id = allocateID();
 	if (id == FAIL) {
 		return FAIL;
 	}
@@ -125,7 +125,7 @@ int Scheduler::spawnThread(thread_functor func) {
 
 int Scheduler::terminateThread(shared_ptr<Thread>& th) {
 	if (th->threadState == RUNNING) {
-		quantumUpdate (NOT_SIGALRM);
+//		quantumUpdate (NOT_SIGALRM);
 	}
 
 	//TODO - remove the thread id from the control structures
@@ -151,7 +151,8 @@ int Scheduler::setMask() {
 }
 
 int Scheduler::startTimer(int quantum_usec) {
-	action.sa_handler = quantumUpdate;
+	//TODO?
+	action.sa_handler = quantumUpdate(0);
 
 	if (sigemptyset(&action.sa_mask)) {
 		cerr << "system error: could not set an empty signal mask"	<< endl;
