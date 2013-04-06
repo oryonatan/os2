@@ -7,8 +7,14 @@
  * Questions: os@cs.huji.ac.il
  */
 
+
+//DEBUG
+#include <random>
+
+
 #include "uthreads.h"
 #include "scheduler.h"
+#include "thread.h"
 #include <stdio.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -104,8 +110,10 @@ void f(void)
   int i = 0;
   while(1){
     ++i;
-    if (i % 100000000== 0) {
+    if (i % 300000000== 0) {
+
         printf("in f (%d)\n",i);
+//    	schd->getDebugData();
         }
 //    if (i % 3 == 0) {
 //      printf("f: switching\n");
@@ -122,8 +130,12 @@ void g(void)
   int i = 0;
   while(1){
     ++i;
-    if (i % 100000000 == 0) {
+    if (i % 300000000 == 0) {
         printf("in g (%d)\n",i);
+//        schd->getDebugData();
+//        cout << "suspending 1";
+//        uthread_suspend(1);
+//        schd->getDebugData();
         }
 //    if (i % 5 == 0) {
 //      printf("g: switching\n");
@@ -139,8 +151,10 @@ void h(void)
   int i = 0;
   while(1){
     ++i;
-    if (i % 100000000 == 0) {
-    printf("in h (%d)\n",i);
+    if (i % 300000000 == 0) {
+    printf("in h (%d) sleep h \n",i);
+    uthread_sleep(10);
+    printf("sleep end");
     }
 //    if (i % 4 == 0) {
 //      printf("h: switching\n");
@@ -151,6 +165,20 @@ void h(void)
   }
 }
 
+void m(void) {
+	cout << "m" << endl;
+	int i = 0;
+	while (1) {
+		++i;
+		if (i % 300000000 == 0) {
+			printf("in m(%d)\n", i);
+//			schd->getDebugData();
+//			cout << "resume 1" << endl;
+//			uthread_resume(1);
+//			schd->getDebugData();
+		}
+	}
+}
 
 void setup(void)
 {
@@ -214,35 +242,24 @@ int main(void){
 	//create two threads
 	//switch between them on timely manner
 //	schd = new Scheduler();
-	uthread_init(3000000);
+	uthread_init(1000000);
 	uthread_spawn(f);
-	uthread_spawn(g);
+//	uthread_spawn(g);
+	uthread_spawn(h); // sleepy
+//	uthread_spawn(m);
 
-//	cerr << schd->threads.readyQueue.size() << endl;
-//	cerr << schd->getThreadsCount() << endl;
-//	cerr << schd->getReadyCount() << endl;
-//	cerr << schd->readySet() << endl;
-//	schd->FTW();
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(0,1);
+	double rnd;
 
+	while(1){
+		rnd = dis(gen);
+		if (rnd > 0.9999995){
+//			schd->getDebugData();
+		}
 
-	//siglongjmp(schd->threads.running->env,1);
-	while(1){};
-//  setup();
-//  schd = new Scheduler(2);
-//  schdSetup();
-//  struct sigaction act,oact;
-//  sigemptyset(&act.sa_mask);
-//  act.sa_flags = 0;
-//  act.sa_handler = timer_handler;
-//  sigaction(SIGVTALRM,&act,&oact);
-//
-//  struct itimerval tv;
-//  tv.it_value.tv_sec = 2;  /* first time interval, seconds part */
-//  tv.it_value.tv_usec = 0; /* first time interval, microseconds part */
-//  tv.it_interval.tv_sec = 2;  /* following time intervals, seconds part */
-//  tv.it_interval.tv_usec = 0; /* following time intervals, microseconds part */
-//  setitimer(ITIMER_VIRTUAL, &tv, NULL);
-//  siglongjmp(schd->threads.running->env, 1);
+	};
 
 }
 #endif

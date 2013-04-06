@@ -87,7 +87,7 @@ int Scheduler::allocateID() {
 
 }
 
-int Scheduler::quantumUpdate(int sig) {
+void Scheduler::quantumUpdate(int sig) {
 	this->quanta++;
 	for (shared_ptr<Thread> thread : threads.sleeping) {
 		thread->sleepQuantoms--;
@@ -117,19 +117,19 @@ shared_ptr<Thread> Scheduler::getThread(int tid) {
 }
 
 
-static void timeHandler(int signum) {
-	//TODO I'm not quite sure this works , I want to set the jump
-	//to the current thread
-	int ret_val = sigsetjmp(schd->threads.running->env,1);
-	  if (ret_val == 1) {
-	      return;
-	  }
-	schd->quantumUpdate(signum);
-	//the running thread should may be changed now , if it wasn't we will
-	//jump to the same location (I think , this really hasn't been tested
-	schd->startTimer(schd->quantom_usecs);
-	siglongjmp(schd->threads.running->env,1);
-};
+
+
+int Scheduler::suspendThread(shared_ptr<Thread>& targetThread) {
+
+}
+
+void Scheduler::sleepRunning(int quantumNum) {
+	auto running =threads.running;
+	if (running->id == 0) return; // cant sleep main
+	running->sleepQuantoms = quantumNum;
+	moveThread(running,SLEEPING);
+	moveThread(threads.readyQueue.front(), RUNNING);
+}
 
 void Scheduler::eraseFromState(state originalState,
 		shared_ptr<Thread> threadToErase) {
@@ -153,11 +153,13 @@ void Scheduler::eraseFromState(state originalState,
 }
 
 void Scheduler::setRunningThread(shared_ptr<Thread> th) {
-	cout << "new running thread " << th->id << ":" << th->env << endl;
+	cerr << "new running thread " << th->id << " : " << th->env << endl;
 	if (threads.running) {
-		moveThread(move(threads.running), READY);
+		moveThread(threads.running, READY);
 	}
-	threads.running = move(th);
+	threads.running = th;
+	th->totalQuanta++;
+
 }
 
 void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
@@ -168,16 +170,16 @@ void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
 	th->threadState = newState;
 	switch (newState) {
 	case RUNNING:
-		setRunningThread(move(th));
+		setRunningThread(th);
 		break;
 	case READY:
-		threads.readyQueue.push_back(move(th));
+		threads.readyQueue.push_back(th);
 		break;
 	case SUSPENDED:
-		threads.suspended.insert(move(th));
+		threads.suspended.insert(th);
 		break;
 	case SLEEPING:
-		threads.sleeping.insert(move(th));
+		threads.sleeping.insert(th);
 		break;
 	case TERMINATED:
 		//TODO?terminateThread(move(th));
@@ -281,7 +283,9 @@ Thread::Thread(thread_functor func, int threadID):
 		threadState(READY),
 		id(threadID),
 		action(func),
-		sleepQuantoms(0) {
+		sleepQuantoms(0),
+		totalQuanta(0)
+{
 	//TODO if the number of threads exceeds the limit, delete the stack
 	// and throw an exception
 	//the id is done inside the scheduler - is it a good idea?
@@ -302,6 +306,41 @@ Thread::Thread(thread_functor func, int threadID):
 }
 
 
+void Scheduler::getDebugData (){
+	cerr << "Running " << threads.running->id << endl;
+
+	cerr << "usedThreads : \t";
+	for (auto thPair : usedThreads)
+	{
+		cerr <<" "<< thPair.first;
+	}
+	cerr << endl;
+
+	cerr << "readyThreads : \t";
+	for (auto th : threads.readyQueue)
+	{
+		cerr <<" "<< th->id;
+	}
+	cerr << endl;
+
+	cerr << "Sleeping (id ,quanta left) : \t";
+	for (auto th : threads.sleeping)
+	{
+		cerr <<"( "<< th->id  << " , " << th->sleepQuantoms << ")";
+	}
+	cerr << endl;
+
+	cerr << "Suspended : \t";
+			for (auto th : threads.suspended)
+	{
+		cerr <<" "<< th->id;
+	}
+	cerr << endl;
+}
+
 //Define scheduler schd (global)
 Scheduler * schd = new Scheduler();
+
+
+
 

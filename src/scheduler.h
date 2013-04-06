@@ -20,49 +20,9 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <assert.h>
+#include "thread.h"
 #define NOT_SIGALARM  SIGVTALRM + 1
 using namespace std;
-
-enum state {
-	READY, RUNNING, SUSPENDED, SLEEPING, TERMINATED, SIZE, NONE_SPECIFIED
-};
-
-typedef char stackMem[STACK_SIZE];
-typedef void (*thread_functor)(void);
-
-struct Thread {
-	Thread(thread_functor func, int threadID);
-
-	stackMem stack;
-	state threadState;
-	unsigned int id;
-	thread_functor action;
-	sigjmp_buf env;
-	long sleepQuantoms;
-
-	~Thread() {
-		delete(stack);
-		cout << "Thread deleted " << id << endl;
-	}
-};
-
-
-//A struct for holding all the threads
-struct ThreadsStruct {
-	ThreadsStruct() :
-			readyQueue(), suspended(), sleeping() {
-		//TODO: create the main thread with ID=0
-	}
-	shared_ptr<Thread> running;
-	list<shared_ptr<Thread>> readyQueue;
-	set<shared_ptr<Thread>> suspended;
-	set<shared_ptr<Thread>> sleeping;
-	~ThreadsStruct(){
-		readyQueue.clear();
-		suspended.clear();
-		sleeping.clear();
-	}
-};
 
 
 class Scheduler {
@@ -70,10 +30,7 @@ public:
 	int getThreadsCount(){return usedThreads.size();};
 	int getReadyCount(){return threads.readyQueue.size();};
 	int readySet(){return threads.running != NULL;};
-	void FTW (){
-		cerr << getThreadsCount() << endl;
-		cerr << getThreadsCount() << endl;
-		cerr << readySet() << endl;}
+	void getDebugData ();
 	//TODO - do we need a destructor (erase used_threads etc.)
 
 	ThreadsStruct threads;
@@ -83,8 +40,8 @@ public:
 	shared_ptr<Thread> getThread (int tid);
 	int terminateThread(shared_ptr<Thread>& targetThread);
 	int suspendThread (shared_ptr<Thread>& targetThread);
-	int sleepThread (int quantumNum);
-	int quantumUpdate(int sig);
+	void sleepRunning (int quantumNum);
+	void quantumUpdate(int sig);
 	//Moves a thread to the appropriate list
 	void moveThread(shared_ptr<Thread>, state);
 	int spawnThread(thread_functor);
@@ -99,9 +56,10 @@ public:
 	int allocateID();
 	unordered_map <int,shared_ptr<Thread> > usedThreads;
 	int quantom_usecs;
+	long quanta;
 private:
 	//we use this to fetch the threads by their id
-	long quanta;
+
 
 	sigset_t mask;
 	struct itimerval tv;
@@ -117,10 +75,25 @@ private:
 
 
 
-//calls sched quatomupdate (sched.quantomUpdate is not static);
-static void timeHandler(int);
 extern Scheduler * schd;
+static void timeHandler(int signum) {
+	//TODO I'm not quite sure this works , I want to set the jump
+	//to the current thread
+	int ret_val = sigsetjmp(schd->threads.running->env,1);
+	  if (ret_val == 1) {
+	      return;
+	  }
+	schd->quantumUpdate(signum);
+	//the running thread should may be changed now , if it wasn't we will
+	//jump to the same location (I think , this really hasn't been tested
+	schd->startTimer(schd->quantom_usecs);
+	siglongjmp(schd->threads.running->env,1);
+};
 
+
+static void sleepHandler(int signum){
+		
+}
 #endif
 
 

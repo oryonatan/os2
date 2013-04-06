@@ -84,17 +84,33 @@ int uthread_resume(int tid) {
 }
 
 int uthread_sleep(int num_quantums) {
-	return 0;
+	int tid = uthread_get_tid();
+	if ( 0 == tid){
+		return FAIL;
+	}
+	int ret_val = sigsetjmp(schd->threads.running->env,1);
+	  if (ret_val == 1) {
+	      return OK;
+	  }
+	schd->sleepRunning(num_quantums+1);
+	schd->startTimer(schd->quantom_usecs);
+	siglongjmp(schd->threads.running->env,1);
+	return OK;
 }
 
 int uthread_get_tid() {
-	return 0;
+	return schd->threads.running->id;
 }
 
 int uthread_get_total_quantums() {
-	return 0;
+	return schd->quanta;
 }
 
 int uthread_get_quantums(int tid) {
-	return 0;
+	try	{
+		return schd->usedThreads.at(tid)->totalQuanta;
+	}catch (out_of_range&)
+	{
+		return FAIL;
+	}
 }
