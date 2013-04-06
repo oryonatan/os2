@@ -67,11 +67,18 @@ struct ThreadsStruct {
 
 class Scheduler {
 public:
+	int getThreadsCount(){return usedThreads.size();};
+	int getReadyCount(){return threads.readyQueue.size();};
+	int readySet(){return threads.running != NULL;};
+	void FTW (){
+		cerr << getThreadsCount() << endl;
+		cerr << getThreadsCount() << endl;
+		cerr << readySet() << endl;}
 	//TODO - do we need a destructor (erase used_threads etc.)
 
 	ThreadsStruct threads;
 	//sets the scheduler at the library initialization
-	int setup (int  quantumLength);
+	//int setup (int  quantumLength);
 	void setQuantumLength (int quantum_usecs);
 	shared_ptr<Thread> getThread (int tid);
 	int terminateThread(shared_ptr<Thread>& targetThread);
@@ -91,10 +98,11 @@ public:
 
 	int allocateID();
 	unordered_map <int,shared_ptr<Thread> > usedThreads;
+	int quantom_usecs;
 private:
 	//we use this to fetch the threads by their id
 	long quanta;
-	int quantom_usecs;
+
 	sigset_t mask;
 	struct itimerval tv;
 	struct sigaction action;
@@ -108,10 +116,10 @@ private:
 };
 
 
-//First initialize a scheduler , we need time handler to be static!
-static Scheduler * schd = new Scheduler();
+
 //calls sched quatomupdate (sched.quantomUpdate is not static);
-static int timeHandler(int);
+static void timeHandler(int);
+extern Scheduler * schd;
 
 #endif
 

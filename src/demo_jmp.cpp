@@ -18,6 +18,7 @@
 #define SECOND 1000000
 #define STACK_SIZE 4096
 
+extern Scheduler * schd;
 //Scheduler * schd;
 
 void timer_handler(int);
@@ -208,6 +209,24 @@ void timer_handler(int sig)
 	schdSwitchThreads();
 }
 int main(void){
+
+	//initial test :
+	//create two threads
+	//switch between them on timely manner
+//	schd = new Scheduler();
+	uthread_init(3000000);
+	uthread_spawn(f);
+	uthread_spawn(g);
+
+//	cerr << schd->threads.readyQueue.size() << endl;
+//	cerr << schd->getThreadsCount() << endl;
+//	cerr << schd->getReadyCount() << endl;
+//	cerr << schd->readySet() << endl;
+//	schd->FTW();
+
+
+	//siglongjmp(schd->threads.running->env,1);
+	while(1){};
 //  setup();
 //  schd = new Scheduler(2);
 //  schdSetup();

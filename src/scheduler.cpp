@@ -1,4 +1,6 @@
 #include "scheduler.h"
+//First initialize a scheduler , we need time handler to be static!
+
 ////////////////////////////////////////////////////////////////////////
 /*				OS STUFF FROM DEMO_JUMP.cpp							////
  * /////////////////////////////////////////////////////////////////////
@@ -92,10 +94,9 @@ int Scheduler::quantumUpdate(int sig) {
 		if (thread->sleepQuantoms <= 0) {
 			moveThread(thread, READY);
 		}
-
 	}
 	if (!threads.readyQueue.empty()) {
-		moveThread(move(threads.readyQueue.front()), RUNNING);
+		moveThread(threads.readyQueue.front(), RUNNING);
 	}
 	if (sig != SIGVTALRM)
 	{
@@ -126,6 +127,7 @@ static void timeHandler(int signum) {
 	schd->quantumUpdate(signum);
 	//the running thread should may be changed now , if it wasn't we will
 	//jump to the same location (I think , this really hasn't been tested
+	schd->startTimer(schd->quantom_usecs);
 	siglongjmp(schd->threads.running->env,1);
 };
 
@@ -283,6 +285,11 @@ Thread::Thread(thread_functor func, int threadID):
 	//TODO if the number of threads exceeds the limit, delete the stack
 	// and throw an exception
 	//the id is done inside the scheduler - is it a good idea?
+	if (NULL == func)
+	{
+		cerr << "Main created : "<< id << endl;
+		return;
+	}
 	address_t sp, pc;
 	//why 1?
 	sp = (address_t) this->stack + STACK_SIZE - sizeof(address_t);
@@ -291,20 +298,10 @@ Thread::Thread(thread_functor func, int threadID):
 	(this->env->__jmpbuf)[JB_SP] = translate_address(sp);
 	(this->env->__jmpbuf)[JB_PC] = translate_address(pc);
 	sigemptyset(&this->env->__saved_mask);
-	cout << "Thread created : "<< id << endl;
+	cerr << "Thread created : "<< id << endl;
 }
 
 
-
-void schdSwitchThreads(void)
-{
-  int ret_val = sigsetjmp(schd->threads.running->env,1);
-
-  printf("SWITCH: ret_val=%d\n", ret_val);
-  if (ret_val == 1) {
-      return;
-  }
-//  schd->updateRunning();
-  siglongjmp(schd->threads.running->env,1);
-}
+//Define scheduler schd (global)
+Scheduler * schd = new Scheduler();
 
