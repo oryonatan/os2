@@ -63,9 +63,21 @@ static address_t translate_address(address_t addr)
 #define COPIES_ALLOWED 3
 
 void Scheduler::blockSignals() {
+
+	if(sigprocmask(SIG_SETMASK, &mask, NULL))
+		{
+		//TODO - check if we should free resources or anything
+			std::cerr << "system error: failed to set mask" << std::endl;
+			exit(1);
+		}
 }
 
 void Scheduler::unblockSignals() {
+	if(sigprocmask(SIG_UNBLOCK, &mask, NULL))
+		{
+			std::cerr << "system error: failed to unblock signals" <<std::endl;
+			exit(1);
+		}
 }
 
 int Scheduler::allocateID() {
@@ -98,6 +110,9 @@ void Scheduler::quantumUpdate(int sig) {
 	if (!threads.readyQueue.empty()) {
 		moveThread(threads.readyQueue.front(), RUNNING);
 	}
+
+	//this function is used both when the times expires and when we're sleeping/terminating//
+	//suspending the thread before a quantum has expired. In the latter case, the timer must be reset
 	if (sig != SIGVTALRM)
 	{
 		resetTimer();
@@ -110,6 +125,7 @@ shared_ptr<Thread> Scheduler::getThread(int tid) {
 	try {
 		result = usedThreads.at(tid);
 	} catch (out_of_range&) {
+		cerr << "thread library error: thread not found" << endl;
 		return NULL;
 	}
 
@@ -119,16 +135,47 @@ shared_ptr<Thread> Scheduler::getThread(int tid) {
 
 
 
-int Scheduler::suspendThread(shared_ptr<Thread>& targetThread) {
+void Scheduler::suspendThread(shared_ptr<Thread>& targetThread)
+{
+	//suspending a sleeping/suspended thread is not an error
+	if (targetThread->threadState == SUSPENDED || targetThread->threadState == SLEEPING)
+	{
+		return;
+	}
 
+	else
+	{
+		state originalState = targetThread->threadState;
+		moveThread(targetThread, SUSPENDED);
+		//if a thread suspended itself, a scheduling decision needs to be made
+		if (originalState  == RUNNING)
+		{
+			quantumUpdate (NOT_SIGALARM);
+		}
+		return;
+	}
+
+}
+
+void Scheduler::suspendThread(shared_ptr<Thread>& targetThread)
+{
+	state originalState = targetThread->threadState;
+	if (originalState == SUSPENDED)
+	{
+		moveThread(targetThread, READY);
+	}
+
+	return;
 }
 
 void Scheduler::sleepRunning(int quantumNum) {
 	auto running =threads.running;
 	if (running->id == 0) return; // cant sleep main
+
 	running->sleepQuantoms = quantumNum;
 	moveThread(running,SLEEPING);
-	moveThread(threads.readyQueue.front(), RUNNING);
+	//Whenever a new thread starts running, we treat it as if a quantum has expired
+	quantumUpdate(NOT_SIGALARM);
 }
 
 void Scheduler::eraseFromState(state originalState,
@@ -270,7 +317,7 @@ int Scheduler::resetTimer ()
 	if(setitimer(ITIMER_VIRTUAL, &tv, NULL))
 	{
 		cerr<< "system error: failed to set timer"<<endl;
-		return SYSTEM_ERROR;
+		exit (1);
 	}
 
 	return OK;

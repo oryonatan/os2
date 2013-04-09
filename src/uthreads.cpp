@@ -20,13 +20,13 @@ int uthread_init(int quantum_usecs) {
 	{
 		exit(1);
 	}
+	//TODO if setMask is successful, we start the timer twice, is it OK?
 	schd->startTimer(quantum_usecs);
 	return OK;
 
 }
 
 int uthread_spawn(void (*f)(void)) {
-//TODO - not sure we should put it here
 	schd -> blockSignals();
 
 	int id = schd->allocateID();
@@ -40,6 +40,7 @@ int uthread_spawn(void (*f)(void)) {
 	schd->threads.readyQueue.push_back(schd->usedThreads[id]);
 
 	schd ->unblockSignals();
+	//TODO - remove after debugging
 	cerr << schd->threads.readyQueue.size() << endl;
 	return OK;
 }
@@ -74,24 +75,56 @@ int uthread_terminate(int tid) {
 }
 
 int uthread_suspend(int tid) {
-	//TODO implement suspend by TID
+	if (tid == 0)
+	{
+		cerr << "thread library error: the main thread cannot be suspended";
+		return FAIL;
+	}
+
+	shared_ptr<Thread> th  = schd->getThread(tid);
+	if (th == NULL)
+	{
+		//the error message was printed with getThread
+		return FAIL;
+	}
+
+	if (th->threadState == SUSPENDED || th->threadState == SLEEPING)
+	{
+		return OK;
+	}
+	else
+	{
+		schd->suspendThread(th);
+	}
+
 	return 0;
 }
 
 int uthread_resume(int tid) {
-	//TODO implement resume by TID
-	return 0;
+	shared_ptr<Thread> th = schd->getThread(tid);
+	if (th == NULL)
+	{
+		return FAIL;
+	}
+
+	schd->resumeThread(th);
+
+	return OK;
 }
 
 int uthread_sleep(int num_quantums) {
 	int tid = uthread_get_tid();
 	if ( 0 == tid){
+		cerr << "thread library error: the main thread cannot be put to sleep"
 		return FAIL;
 	}
 	int ret_val = sigsetjmp(schd->threads.running->env,1);
 	  if (ret_val == 1) {
 	      return OK;
 	  }
+	  //We will later subtract 1 from the sleeping quantums of all sleeping threads, including the
+	  //one that has been put to sleep. But it has just started sleeping - we're giving it and additional
+	  //quantum
 	schd->sleepRunning(num_quantums+1);
 	schd->startTimer(schd->quantom_usecs);
 	siglongjmp(schd->threads.running->env,1);
@@ -107,10 +140,17 @@ int uthread_get_total_quantums() {
 }
 
 int uthread_get_quantums(int tid) {
-	try	{
+	shared_ptr<Thread> th = schd->getThread(tid);
+	if (th == NULL)
+	{
+		return FAIL;
+	}
+
+	return th->totalQuanta;
+	/*try	{
 		return schd->usedThreads.at(tid)->totalQuanta;
 	}catch (out_of_range&)
 	{
 		return FAIL;
-	}
+	}*/
 }

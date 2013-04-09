@@ -39,7 +39,8 @@ public:
 	void setQuantumLength (int quantum_usecs);
 	shared_ptr<Thread> getThread (int tid);
 	int terminateThread(shared_ptr<Thread>& targetThread);
-	int suspendThread (shared_ptr<Thread>& targetThread);
+	void  suspendThread (shared_ptr<Thread>& targetThread);
+	void resumeThread (shared_ptr <Thread>& targetThread);
 	void sleepRunning (int quantumNum);
 	void quantumUpdate(int sig);
 	//Moves a thread to the appropriate list
@@ -58,8 +59,6 @@ public:
 	int quantom_usecs;
 	long quanta;
 private:
-	//we use this to fetch the threads by their id
-
 
 	sigset_t mask;
 	struct itimerval tv;
