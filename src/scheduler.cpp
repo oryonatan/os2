@@ -64,15 +64,34 @@ static address_t translate_address(address_t addr)
 
 void Scheduler::blockSignals() {
 
-	if(sigprocmask(SIG_SETMASK, &mask, NULL))
-		{
-		//TODO - check if we should free resources or anything
-			std::cerr << "system error: failed to set mask" << std::endl;
-			exit(1);
-		}
+	{
+	    cout  <<"blocking signals" << endl;
+	    sigset_t sigMask;
+	    if(sigemptyset(&sigMask))
+	        {
+	        	cerr <<"system error: Failed to initiate empty signal mask" << endl;
+	        	exit (1);
+	        }
+	        if(sigaddset(&sigMask , SIGVTALRM))
+	        {
+	            cerr <<"system error: Failed to add signal to mask" << endl;
+	            exit (1);
+	        }
+	    if(sigprocmask(SIG_SETMASK, &sigMask, &mask))
+	    {
+	        cerr << "Failed to create signal mask" << endl;
+	        exit (1);
+
+	    }
+	    return;
+
+	}
 }
 
 void Scheduler::unblockSignals() {
+	//TODO debug remove
+	cout << "Unblocking signals" << endl;
+
 	if(sigprocmask(SIG_UNBLOCK, &mask, NULL))
 		{
 			std::cerr << "system error: failed to unblock signals" <<std::endl;
@@ -100,6 +119,23 @@ int Scheduler::allocateID() {
 }
 
 void Scheduler::quantumUpdate(int sig) {
+	//TODO debug print
+	if (!threads.suspended.empty())
+	{
+		shared_ptr<Thread> temp = *(threads.suspended.begin());
+		int t;
+		cout << "Suspended thread: " << temp->id << endl;
+
+		cerr << "readyThreads : \t";
+		for (auto th : threads.readyQueue)
+		{
+			cerr <<" "<< th->id;
+		}
+		cerr << endl;
+		//cin >> t;
+	}
+
+
 	this->quanta++;
 	for (shared_ptr<Thread> thread : threads.sleeping) {
 		thread->sleepQuantoms--;
@@ -117,6 +153,8 @@ void Scheduler::quantumUpdate(int sig) {
 	{
 		resetTimer();
 	}
+
+	cout << threads.running->id << endl;
 }
 
 shared_ptr<Thread> Scheduler::getThread(int tid) {
@@ -157,11 +195,12 @@ void Scheduler::suspendThread(shared_ptr<Thread>& targetThread)
 
 }
 
-void Scheduler::suspendThread(shared_ptr<Thread>& targetThread)
+void Scheduler::resumeThread(shared_ptr<Thread>& targetThread)
 {
 	state originalState = targetThread->threadState;
 	if (originalState == SUSPENDED)
 	{
+		cout << "Thread " << targetThread->id << endl;
 		moveThread(targetThread, READY);
 	}
 
@@ -229,7 +268,8 @@ void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
 		threads.sleeping.insert(th);
 		break;
 	case TERMINATED:
-		//TODO?terminateThread(move(th));
+		//TODO - anything else to do in this case?
+		usedThreads.erase (th->id);
 		break;
 	default:
 		break;
@@ -252,11 +292,16 @@ int Scheduler::spawnThread(thread_functor func) {
 }
 
 int Scheduler::terminateThread(shared_ptr<Thread>& th) {
-	if (th->threadState == RUNNING) {
-//		quantumUpdate (NOT_SIGALRM);
+
+	state thState = th->threadState;
+	moveThread (th, TERMINATED);
+
+	if (thState == RUNNING) {
+		quantumUpdate (NOT_SIGALARM);
 	}
 
-	//TODO - remove the thread id from the control structures
+	return OK;
+
 }
 
 void Scheduler::setQuantumLength(int quantum_usecs) {
@@ -355,6 +400,21 @@ Thread::Thread(thread_functor func, int threadID):
 
 void Scheduler::getDebugData (){
 	cerr << "Running " << threads.running->id << endl;
+
+	if (!threads.suspended.empty())
+	{
+		shared_ptr<Thread> temp = *threads.suspended.begin();
+		cout<< "Thread resumed: " << uthread_resume(temp->id) << endl;
+		cerr << "readyThreads : \t";
+			for (auto th : threads.readyQueue)
+			{
+				cerr <<" "<< th->id;
+			}
+			cerr << endl;
+
+			int s;
+			cin >> s;
+	}
 
 	cerr << "usedThreads : \t";
 	for (auto thPair : usedThreads)

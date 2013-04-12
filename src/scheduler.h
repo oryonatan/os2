@@ -76,6 +76,8 @@ private:
 
 extern Scheduler * schd;
 static void timeHandler(int signum) {
+
+	cout << "Quantum has passed" << endl;
 	//TODO I'm not quite sure this works , I want to set the jump
 	//to the current thread
 	int ret_val = sigsetjmp(schd->threads.running->env,1);
@@ -90,9 +92,6 @@ static void timeHandler(int signum) {
 };
 
 
-static void sleepHandler(int signum){
-		
-}
 #endif
 
 

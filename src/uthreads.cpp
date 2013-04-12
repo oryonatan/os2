@@ -75,6 +75,7 @@ int uthread_terminate(int tid) {
 }
 
 int uthread_suspend(int tid) {
+
 	if (tid == 0)
 	{
 		cerr << "thread library error: the main thread cannot be suspended";
@@ -113,13 +114,17 @@ int uthread_resume(int tid) {
 }
 
 int uthread_sleep(int num_quantums) {
+
+	schd->blockSignals();
 	int tid = uthread_get_tid();
 	if ( 0 == tid){
-		cerr << "thread library error: the main thread cannot be put to sleep"
+		schd->unblockSignals();
+		cerr << "thread library error: the main thread cannot be put to sleep" << endl;
 		return FAIL;
 	}
 	int ret_val = sigsetjmp(schd->threads.running->env,1);
 	  if (ret_val == 1) {
+		  schd->unblockSignals();
 	      return OK;
 	  }
 	  //We will later subtract 1 from the sleeping quantums of all sleeping threads, including the
@@ -128,6 +133,7 @@ int uthread_sleep(int num_quantums) {
 	schd->sleepRunning(num_quantums+1);
 	schd->startTimer(schd->quantom_usecs);
 	siglongjmp(schd->threads.running->env,1);
+	schd->unblockSignals();
 	return OK;
 }
 
