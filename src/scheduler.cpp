@@ -10,114 +10,56 @@ but meanwhile it's here
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include "address_translation.h"
+using namespace std;
 
-#ifdef __x86_64__
-/* code for 64 bit Intel arch */
-
-typedef unsigned long address_t;
-#define JB_SP 6
-#define JB_PC 7
-
-
-
-
-/* A translation is required when using an address of a variable.
-   Use this as a black box in your code. */
-address_t translate_address(address_t addr)
-{
-    address_t ret;
-    asm volatile("xor    %%fs:0x30,%0\n"
-		"rol    $0x11,%0\n"
-                 : "=g" (ret)
-                 : "0" (addr));
-    return ret;
-}
-
-#else
-/* code for 32 bit Intel arch */
-
-typedef unsigned int address_t;
-#define JB_SP 4
-#define JB_PC 5
-
-/* A translation is required when using an address of a variable.
-   Use this as a black box in your code. */
-static address_t translate_address(address_t addr)
-{
-    address_t ret;
-    asm volatile("xor    %%gs:0x18,%0\n"
-		"rol    $0x9,%0\n"
-                 : "=g" (ret)
-                 : "0" (addr));
-    return ret;
-}
-
-#endif
-
-////////////////////////////////////////////////////////////////////////
-//		ENDOF OS STUFF FROM DEMO_JUMP.cpp							////
-////////////////////////////////////////////////////////////////////////
-
-
-//For debug purposes: the number of allowed shared pointers owning the thread
+//DEBUG :For debug purposes: the number of allowed shared pointers owning the thread
 #define COPIES_ALLOWED 3
 
+//Block signals
 void Scheduler::blockSignals() {
-
 	{
-	    cout  <<"blocking signals" << endl;
-	    sigset_t sigMask;
-	    if(sigemptyset(&sigMask))
-	        {
-	        	cerr <<"system error: Failed to initiate empty signal mask" << endl;
-	        	exit (1);
-	        }
-	        if(sigaddset(&sigMask , SIGVTALRM))
-	        {
-	            cerr <<"system error: Failed to add signal to mask" << endl;
-	            exit (1);
-	        }
-	    if(sigprocmask(SIG_SETMASK, &sigMask, &mask))
-	    {
-	        cerr << "Failed to create signal mask" << endl;
-	        exit (1);
+		cout << "blocking signals" << endl;
+		sigset_t sigMask;
+		if (sigemptyset(&sigMask)) {
+			cerr << SIGEMPTYSET_FAIL << endl;
+			exit(1);
+		}
+		if (sigaddset(&sigMask, SIGVTALRM)) {
+			cerr << SIGADDSET_FAIL << endl;
+			exit(1);
+		}
+		if (sigprocmask(SIG_SETMASK, &sigMask, &mask)) {
+			cerr << SIGMASK_FAIL << endl;
+			exit(1);
 
-	    }
-	    return;
-
+		}
+		return;
 	}
 }
 
+//Unblock signals
 void Scheduler::unblockSignals() {
 	//TODO debug remove
 	cout << "Unblocking signals" << endl;
-
-	if(sigprocmask(SIG_UNBLOCK, &mask, NULL))
-		{
-			std::cerr << "system error: failed to unblock signals" <<std::endl;
-			exit(1);
-		}
+	if (sigprocmask(SIG_UNBLOCK, &mask, NULL)) {
+		cerr << UNBLOCK_FAIL << endl;
+		exit(1);
+	}
 }
 
+//Allocates an id to thread
 int Scheduler::allocateID() {
 	for (int id = 1; id < MAX_THREAD_NUM; id++) {
-		if (usedThreads.find(id) == usedThreads.end())
-		{
+		if (usedThreads.find(id) == usedThreads.end()) {
 			return id;
 		}
-//		try {
-//			shared_ptr<Thread> temp = usedThreads.at(i);
-//		}
-//
-//		catch (out_of_range&) {
-//			return i;
-//		}
 	}
-
 	return FAIL;
 
 }
 
+//Updates quantom
 void Scheduler::quantumUpdate(int sig) {
 	//TODO debug print
 	if (!threads.suspended.empty())
@@ -126,17 +68,16 @@ void Scheduler::quantumUpdate(int sig) {
 		int t;
 		cout << "Suspended thread: " << temp->id << endl;
 
+		//Debug
 		cerr << "readyThreads : \t";
 		for (auto th : threads.readyQueue)
 		{
 			cerr <<" "<< th->id;
 		}
 		cerr << endl;
-		//cin >> t;
 	}
 
-
-	this->quanta++;
+	schd->quanta++;
 	for (shared_ptr<Thread> thread : threads.sleeping) {
 		thread->sleepQuantoms--;
 		if (thread->sleepQuantoms <= 0) {
@@ -154,11 +95,12 @@ void Scheduler::quantumUpdate(int sig) {
 		resetTimer();
 	}
 
+	//DEBUG
 	cout << threads.running->id << endl;
 }
 
+//Gets a thread
 shared_ptr<Thread> Scheduler::getThread(int tid) {
-
 	shared_ptr<Thread> result = NULL;
 	try {
 		result = usedThreads.at(tid);
@@ -166,57 +108,66 @@ shared_ptr<Thread> Scheduler::getThread(int tid) {
 		cerr << "thread library error: thread not found" << endl;
 		return NULL;
 	}
-
 	return result;
 }
 
-
-
-
-void Scheduler::suspendThread(shared_ptr<Thread>& targetThread)
-{
+//Suspends a thread
+void Scheduler::suspendThread(shared_ptr<Thread>& targetThread) {
 	//suspending a sleeping/suspended thread is not an error
-	if (targetThread->threadState == SUSPENDED || targetThread->threadState == SLEEPING)
-	{
+	if (targetThread->threadState == SUSPENDED
+			|| targetThread->threadState == SLEEPING) {
 		return;
 	}
 
-	else
-	{
+	else {
 		state originalState = targetThread->threadState;
 		moveThread(targetThread, SUSPENDED);
 		//if a thread suspended itself, a scheduling decision needs to be made
-		if (originalState  == RUNNING)
-		{
-			quantumUpdate (NOT_SIGALARM);
+		if (originalState == RUNNING) {
+			quantumUpdate(NOT_SIGALARM);
 		}
 		return;
 	}
-
 }
 
-void Scheduler::resumeThread(shared_ptr<Thread>& targetThread)
-{
+//Resumes a sleeping thread
+void Scheduler::resumeThread(shared_ptr<Thread>& targetThread) {
 	state originalState = targetThread->threadState;
-	if (originalState == SUSPENDED)
-	{
+	if (originalState == SUSPENDED) {
 		cout << "Thread " << targetThread->id << endl;
 		moveThread(targetThread, READY);
 	}
-
 	return;
 }
 
+//sets the running thread to sleep
 void Scheduler::sleepRunning(int quantumNum) {
-	auto running =threads.running;
+	shared_ptr<Thread> running =threads.running;
 	if (running->id == 0) return; // cant sleep main
-
 	running->sleepQuantoms = quantumNum;
 	moveThread(running,SLEEPING);
 	//Whenever a new thread starts running, we treat it as if a quantum has expired
 	quantumUpdate(NOT_SIGALARM);
 }
 
+//Initial setup for the scheduler, set quantom length and main thread.
+int Scheduler::setup(int quantomLength) {
+	this->setQuantumLength(quantomLength);
+	if(MAX_THREAD_NUM <1 ) return FAIL;
+	try {
+		this->usedThreads[(MAIN_THREAD_ID)] = shared_ptr<Thread>(
+				new Thread(NULL, MAIN_THREAD_ID));
+		this->threads.running = schd->usedThreads[MAIN_THREAD_ID];
+		this->setMask();
+		this->startTimer();
+		return OK;
+	} catch (...) {
+		return FAIL;
+	}
+	return OK; // this actually does'nt do anything , but eclipse like this line
+}
+
+//Remove a thread from its queue
 void Scheduler::eraseFromState(state originalState,
 		shared_ptr<Thread> threadToErase) {
 	switch (originalState) {
@@ -234,10 +185,10 @@ void Scheduler::eraseFromState(state originalState,
 		break;
 	case NONE_SPECIFIED:
 		break;
-
 	}
 }
 
+//Sets the thread to running state,noves the running to ready
 void Scheduler::setRunningThread(shared_ptr<Thread> th) {
 	cerr << "new running thread " << th->id << " : " << th->env << endl;
 	if (threads.running) {
@@ -248,8 +199,8 @@ void Scheduler::setRunningThread(shared_ptr<Thread> th) {
 
 }
 
+//Moves a thread to another list
 void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
-
 	state originalState = th->threadState;
 	eraseFromState(originalState, th);
 
@@ -274,75 +225,64 @@ void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
 	default:
 		break;
 	}
-
-//	assert(th.use_count <= COPIES_ALLOWED);
 }
 
-int Scheduler::spawnThread(thread_functor func) {
-	int id = allocateID();
-	if (id == FAIL) {
-		return FAIL;
-	}
-
-	usedThreads[id] = shared_ptr<Thread>(new Thread(func, id));
-	threads.readyQueue.push_back(usedThreads[id]);
-
-	return OK;
-
-}
-
+//Terminates a thread
 int Scheduler::terminateThread(shared_ptr<Thread>& th) {
 
 	state thState = th->threadState;
-	moveThread (th, TERMINATED);
+	moveThread(th, TERMINATED);
 
 	if (thState == RUNNING) {
-		quantumUpdate (NOT_SIGALARM);
+		quantumUpdate(NOT_SIGALARM);
 	}
 
 	return OK;
 
 }
 
+//Sets the qunatom length
 void Scheduler::setQuantumLength(int quantum_usecs) {
-	this->quantom_usecs = quantum_usecs;
+	Scheduler::quantom_usecs = quantum_usecs;
 }
 
+//Sets a signal mask
 int Scheduler::setMask() {
 	if (sigemptyset(&mask)) {
-		cerr << "system error: failed to initialize a mask" << endl;
-		return SYSTEM_ERROR;
+		cerr << MASK_SET_FAIL << "sigemptyset" << endl;
+		exit(1);
 	}
 
 	if (sigaddset(&mask, SIGVTALRM)) {
-		cerr << "system error: could not add signal to mask" << endl;
-		return SYSTEM_ERROR;
+		cerr << MASK_ADD_FAIL << "sigaddset" << endl;
+		exit(1);
 	}
 
 	return OK;
 
 }
 
-int Scheduler::startTimer(int quantum_usec) {
+//Starts the times
+int Scheduler::startTimer() {
 	action.sa_handler =  (__sighandler_t)timeHandler;
 
 	if (sigemptyset(&action.sa_mask)) {
-		cerr << "system error: could not set an empty signal mask"	<< endl;
-		return SYSTEM_ERROR;
+		cerr << EMPTY_SET_FAIL << endl;
+		exit(1);
 	}
 
 	if (sigaddset(&action.sa_mask, SIGVTALRM)) {
-		cerr << "system error: could not add signal to mask" << endl;
-		return SYSTEM_ERROR;
+		cerr << MASK_ADD_FAIL << "sigaddset" << endl;
+		exit(1);
 	}
 
 	if (sigaction(SIGVTALRM, &action, NULL)) {
-		cerr << "system error: could not create sigaction" <<endl;
-		return SYSTEM_ERROR;
+		cerr << SIGACTION_FAIL << endl;
+		exit(1);
 	}
 
-	tv.it_value.tv_sec = quantum_usec/USECS_IN_SEC;
-	tv.it_value.tv_usec = quantum_usec%USECS_IN_SEC;
+	tv.it_value.tv_sec = quantom_usecs/USECS_IN_SEC;
+	tv.it_value.tv_usec = quantom_usecs%USECS_IN_SEC;
 	tv.it_interval.tv_sec = 0;
 	tv.it_interval.tv_usec = 0;
 	if(setitimer(ITIMER_VIRTUAL, &tv, NULL))
@@ -370,34 +310,7 @@ int Scheduler::resetTimer ()
 }
 
 
-Thread::Thread(thread_functor func, int threadID):
-		stack(),
-		threadState(READY),
-		id(threadID),
-		action(func),
-		sleepQuantoms(0),
-		totalQuanta(0)
-{
-	//TODO if the number of threads exceeds the limit, delete the stack
-	// and throw an exception
-	//the id is done inside the scheduler - is it a good idea?
-	if (NULL == func)
-	{
-		cerr << "Main created : "<< id << endl;
-		return;
-	}
-	address_t sp, pc;
-	//why 1?
-	sp = (address_t) this->stack + STACK_SIZE - sizeof(address_t);
-	pc = (address_t) func;
-	sigsetjmp(this->env,1);
-	(this->env->__jmpbuf)[JB_SP] = translate_address(sp);
-	(this->env->__jmpbuf)[JB_PC] = translate_address(pc);
-	sigemptyset(&this->env->__saved_mask);
-	cerr << "Thread created : "<< id << endl;
-}
-
-
+//Prints debug data
 void Scheduler::getDebugData (){
 	cerr << "Running " << threads.running->id << endl;
 

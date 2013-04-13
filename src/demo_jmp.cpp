@@ -24,32 +24,8 @@
 #define SECOND 1000000
 #define STACK_SIZE 4096
 
-extern Scheduler * schd;
+//extern Scheduler * schd;
 //Scheduler * schd;
-
-
-
-
-
-
-//
-///* A translation is required when using an address of a variable.
-//   Use this as a black box in your code. */
-//address_t translate_address(address_t addr)
-//{
-//    address_t ret;
-//    asm volatile("xor    %%fs:0x30,%0\n"
-//		"rol    $0x11,%0\n"
-//                 : "=g" (ret)
-//                 : "0" (addr));
-//    return ret;
-//}
-
-
-
-
-
-
 
 void f(void)
 {
@@ -162,7 +138,7 @@ int main(void){
 
 		if (i % 1000000 == 0)
 		{
-			schd->getDebugData();
+			//schd->getDebugData();
 		}
 
 		if (i == 1000001)

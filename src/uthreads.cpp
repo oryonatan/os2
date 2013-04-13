@@ -10,20 +10,8 @@ int shutDown ()
 }
 
 int uthread_init(int quantum_usecs) {
-	schd->setQuantumLength(quantum_usecs);
-	//creating the main thread
-	schd->usedThreads[(MAIN_THREAD_ID)] =
-			shared_ptr<Thread> (new Thread(NULL, MAIN_THREAD_ID));
-	schd->threads.running = schd->usedThreads[MAIN_THREAD_ID];
-	//TODO - what happens to the stack when we start the main thread running
-	if (schd->setMask() || schd->startTimer(quantum_usecs))
-	{
-		exit(1);
-	}
-	//TODO if setMask is successful, we start the timer twice, is it OK?
-	schd->startTimer(quantum_usecs);
+	if (schd->setup(quantum_usecs) == FAIL) return FAIL;
 	return OK;
-
 }
 
 int uthread_spawn(void (*f)(void)) {
@@ -48,23 +36,20 @@ int uthread_spawn(void (*f)(void)) {
 int uthread_terminate(int tid) {
 	schd->blockSignals();
 
-	shared_ptr<Thread> th= schd->getThread(tid);
-	if ( th == NULL)
-	{
-		cerr << "thread library error: thread not found" <<endl;
-		schd -> unblockSignals();
+	shared_ptr<Thread> th = schd->getThread(tid);
+	if (th == NULL) {
+		cerr << "thread library error: thread not found" << endl;
+		schd->unblockSignals();
 		return FAIL;
 	}
 
-	if (tid == MAIN_THREAD_ID)
-	{
-		//TODO - anything else needed in this case?
+	if (tid == MAIN_THREAD_ID) {
 		delete schd;
 		exit(0);
 	}
 
-	if (schd->terminateThread(th))
-	{
+	//MARIA - please explain why? it allways returns okay...
+	if (schd->terminateThread(th)) {
 		//TODO - check if a function could not terminate because of
 		//thread library error
 		shutDown();
@@ -131,7 +116,7 @@ int uthread_sleep(int num_quantums) {
 	  //one that has been put to sleep. But it has just started sleeping - we're giving it and additional
 	  //quantum
 	schd->sleepRunning(num_quantums+1);
-	schd->startTimer(schd->quantom_usecs);
+	schd->startTimer();
 	siglongjmp(schd->threads.running->env,1);
 	schd->unblockSignals();
 	return OK;

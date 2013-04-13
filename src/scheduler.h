@@ -22,20 +22,26 @@
 #include <assert.h>
 #include "thread.h"
 #define NOT_SIGALARM  SIGVTALRM + 1
+
+#define MOVE_THREAD_FAIL "thread library error: Failed to move thread"m
+#define SIGEMPTYSET_FAIL "system error: Failed to initiate empty signal mask"
+#define SIGADDSET_FAIL "system error: Failed to add signal to mask"
+#define SIGMASK_FAIL "system error: failed to create signal mask"
+#define UNBLOCK_FAIL  "system error: failed to unblock signals"
+#define MASK_SET_FAIL	"system error: failed to initialize a mask:"
+#define MASK_ADD_FAIL 	"system error: could not add signal to mask:"
+#define EMPTY_SET_FAIL 	"system error: could not set an empty signal mask"
+#define SIGACTION_FAIL 	"system error: could not create sigaction"
 using namespace std;
 
 
 class Scheduler {
 public:
-	int getThreadsCount(){return usedThreads.size();};
-	int getReadyCount(){return threads.readyQueue.size();};
-	int readySet(){return threads.running != NULL;};
+	int setup(int quantomLength);
 	void getDebugData ();
 	//TODO - do we need a destructor (erase used_threads etc.)
 
 	ThreadsStruct threads;
-	//sets the scheduler at the library initialization
-	//int setup (int  quantumLength);
 	void setQuantumLength (int quantum_usecs);
 	shared_ptr<Thread> getThread (int tid);
 	int terminateThread(shared_ptr<Thread>& targetThread);
@@ -49,7 +55,7 @@ public:
 
 	//sets the mask for signal blocking
 	int setMask();
-	int startTimer(int quantum_usec);
+	int startTimer();
 	//blocking and unblocking signals during performing an operation
 	void blockSignals();
 	void unblockSignals();
@@ -64,32 +70,32 @@ private:
 	struct itimerval tv;
 	struct sigaction action;
 
+
 	//resets the timer in case the threads were switched before a quantum expired
 	int resetTimer();
 	void setRunningThread(shared_ptr<Thread>);
 
 	//Cleans empty pointers to moved/deleted threads
 	void eraseFromState (state originalState, shared_ptr<Thread> threadToErase);
+
 };
 
-
-
 extern Scheduler * schd;
-static void timeHandler(int signum) {
 
+//Handler for timer events
+static void timeHandler(int signum) {
 	cout << "Quantum has passed" << endl;
-	//TODO I'm not quite sure this works , I want to set the jump
-	//to the current thread
 	int ret_val = sigsetjmp(schd->threads.running->env,1);
 	  if (ret_val == 1) {
 	      return;
 	  }
 	schd->quantumUpdate(signum);
-	//the running thread should may be changed now , if it wasn't we will
-	//jump to the same location (I think , this really hasn't been tested
-	schd->startTimer(schd->quantom_usecs);
+	schd->startTimer();
 	siglongjmp(schd->threads.running->env,1);
 };
+
+
+
 
 
 #endif
