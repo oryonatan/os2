@@ -80,7 +80,16 @@ int uthread_suspend(int tid) {
 	}
 	else
 	{
-		schd->suspendThread(th);
+		int ret_val = sigsetjmp(schd->threads.running->env,1);
+			  if (ret_val == 1) {
+				  schd->unblockSignals();
+			      return OK;
+			  }
+
+			schd->suspendThread(th);
+
+			siglongjmp(schd->threads.running->env,1);
+			return OK;
 	}
 
 	return 0;
@@ -116,7 +125,7 @@ int uthread_sleep(int num_quantums) {
 	  //one that has been put to sleep. But it has just started sleeping - we're giving it and additional
 	  //quantum
 	schd->sleepRunning(num_quantums+1);
-	schd->startTimer();
+	//TODO - maybe startTimer should be here
 	siglongjmp(schd->threads.running->env,1);
 	schd->unblockSignals();
 	return OK;

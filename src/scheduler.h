@@ -23,7 +23,7 @@
 #include "thread.h"
 #define NOT_SIGALARM  SIGVTALRM + 1
 
-#define MOVE_THREAD_FAIL "thread library error: Failed to move thread"m
+#define MOVE_THREAD_FAIL "thread library error: Failed to move thread"
 #define SIGEMPTYSET_FAIL "system error: Failed to initiate empty signal mask"
 #define SIGADDSET_FAIL "system error: Failed to add signal to mask"
 #define SIGMASK_FAIL "system error: failed to create signal mask"
@@ -84,7 +84,7 @@ extern Scheduler * schd;
 
 //Handler for timer events
 static void timeHandler(int signum) {
-	cout << "Quantum has passed" << endl;
+	//cout << "Quantum has passed" << endl;
 	int ret_val = sigsetjmp(schd->threads.running->env,1);
 	  if (ret_val == 1) {
 	      return;

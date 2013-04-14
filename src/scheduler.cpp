@@ -190,7 +190,8 @@ void Scheduler::eraseFromState(state originalState,
 
 //Sets the thread to running state,noves the running to ready
 void Scheduler::setRunningThread(shared_ptr<Thread> th) {
-	cerr << "new running thread " << th->id << " : " << th->env << endl;
+	//TODO - debug print
+	//cerr << "new running thread " << th->id << " : " << th->env << endl;
 	if (threads.running) {
 		moveThread(threads.running, READY);
 	}
