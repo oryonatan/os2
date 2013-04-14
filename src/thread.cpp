@@ -13,7 +13,7 @@ using namespace std;
 
 //Ctor for thread object , exit(1) on fail
 Thread::Thread(thread_functor func, int threadID):
-		stack(),
+		stack((char *) malloc (STACK_SIZE)),
 		threadState(READY),
 		id(threadID),
 		action(func),

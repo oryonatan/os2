@@ -42,7 +42,7 @@ void Scheduler::blockSignals() {
 void Scheduler::unblockSignals() {
 	//TODO debug remove
 	cout << "Unblocking signals" << endl;
-	if (sigprocmask(SIG_UNBLOCK, &mask, NULL)) {
+	if (sigprocmask(SIG_SETMASK, &mask, NULL)) {
 		cerr << UNBLOCK_FAIL << endl;
 		exit(1);
 	}
@@ -62,6 +62,7 @@ int Scheduler::allocateID() {
 //Updates quantom
 void Scheduler::quantumUpdate(int sig) {
 	//TODO debug print
+	cerr << "Quantum Passed" << endl;
 	if (!threads.suspended.empty())
 	{
 		shared_ptr<Thread> temp = *(threads.suspended.begin());
@@ -114,13 +115,13 @@ shared_ptr<Thread> Scheduler::getThread(int tid) {
 //Suspends a thread
 void Scheduler::suspendThread(shared_ptr<Thread>& targetThread) {
 	//suspending a sleeping/suspended thread is not an error
-	if (targetThread->threadState == SUSPENDED
-			|| targetThread->threadState == SLEEPING) {
+	state originalState = targetThread->threadState;
+	if (originalState  == SUSPENDED
+			|| originalState == SLEEPING) {
 		return;
 	}
 
 	else {
-		state originalState = targetThread->threadState;
 		moveThread(targetThread, SUSPENDED);
 		//if a thread suspended itself, a scheduling decision needs to be made
 		if (originalState == RUNNING) {
@@ -134,6 +135,7 @@ void Scheduler::suspendThread(shared_ptr<Thread>& targetThread) {
 void Scheduler::resumeThread(shared_ptr<Thread>& targetThread) {
 	state originalState = targetThread->threadState;
 	if (originalState == SUSPENDED) {
+		//TODO debug print
 		cout << "Thread " << targetThread->id << endl;
 		moveThread(targetThread, READY);
 	}
@@ -229,7 +231,7 @@ void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
 }
 
 //Terminates a thread
-int Scheduler::terminateThread(shared_ptr<Thread>& th) {
+void  Scheduler::terminateThread(shared_ptr<Thread>& th) {
 
 	state thState = th->threadState;
 	moveThread(th, TERMINATED);
@@ -237,8 +239,6 @@ int Scheduler::terminateThread(shared_ptr<Thread>& th) {
 	if (thState == RUNNING) {
 		quantumUpdate(NOT_SIGALARM);
 	}
-
-	return OK;
 
 }
 
@@ -289,19 +289,76 @@ int Scheduler::startTimer() {
 	if(setitimer(ITIMER_VIRTUAL, &tv, NULL))
 	{
 		cerr<< "system error: failed to set timer"<<endl;
-		return SYSTEM_ERROR;
+		exit (1);
 	}
 
 	return OK;
 
 }
 
+
+int isPending (int sig)
+{
+	sigset_t signalSet;
+
+	if (sigpending (&signalSet) != 0)
+	{
+		cerr << SIGPENDING_FAIL << endl;
+		exit (1);
+	}
+
+	int caught = sigismember (&signalSet, sig);
+	if (caught == -1)
+	{
+		cerr << SIGISMEMBER_FAIL << endl;
+		exit(1);
+	}
+
+	return caught;
+
+}
 //resets the timer if threads were switched before the quantum
 //expired. Assumes the timer was set before;
 int Scheduler::resetTimer ()
 {
-	if(setitimer(ITIMER_VIRTUAL, &tv, NULL))
+	//stopping the timer
+	/*if (setitimer (ITIMER_VIRTUAL,NULL, NULL))
 	{
+		cerr << SETITIMER_FAIL << endl;
+		exit(1);
+	}
+
+	if (isPending (SIGVTALRM))
+	{
+		int sig_slot;
+		sigset_t pendingSignalsSet;
+
+		if (sigemptyset(&pendingSignalsSet))
+		{
+			cerr << SIGEMPTYSET_FAIL << endl;
+			exit (1);
+		}
+
+		if (sigaddset (&pendingSignalsSet, SIGVTALRM))
+		{
+			cerr << SIGADDSET_FAIL << endl;
+			exit (1);
+		}
+		//accepting the pending alarm signal
+		if (sigwait (&pendingSignalsSet, &sig_slot))
+		{
+			cerr << SIGWAIT_FAIL<<  endl;
+			exit(1);
+		}
+		//TODO debug printout
+		int temp;
+		cout << "Catching pending signal" << endl;
+		cin >> temp;
+	}
+*/
+
+	if(setitimer(ITIMER_VIRTUAL, &tv, NULL))
+ 	{
 		cerr<< "system error: failed to set timer"<<endl;
 		exit (1);
 	}

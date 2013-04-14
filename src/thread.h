@@ -30,7 +30,7 @@ typedef void (*thread_functor)(void);
 
 struct Thread {
 	int totalQuanta;
-	stackMem stack;
+	char* stack;
 	state threadState;
 	unsigned int id;
 	thread_functor action;

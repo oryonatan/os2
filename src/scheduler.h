@@ -32,6 +32,10 @@
 #define MASK_ADD_FAIL 	"system error: could not add signal to mask:"
 #define EMPTY_SET_FAIL 	"system error: could not set an empty signal mask"
 #define SIGACTION_FAIL 	"system error: could not create sigaction"
+#define SIGPENDING_FAIL "system error: could not check pending signals"
+#define SIGWAIT_FAIL   "system error: could not deal with pending signal"
+#define SIGISMEMBER_FAIL "system error: sigismember function fail"
+#define SETITIMER_FAIL "system error: failed to set the timer"
 using namespace std;
 
 
@@ -44,7 +48,7 @@ public:
 	ThreadsStruct threads;
 	void setQuantumLength (int quantum_usecs);
 	shared_ptr<Thread> getThread (int tid);
-	int terminateThread(shared_ptr<Thread>& targetThread);
+	void  terminateThread(shared_ptr<Thread>& targetThread);
 	void  suspendThread (shared_ptr<Thread>& targetThread);
 	void resumeThread (shared_ptr <Thread>& targetThread);
 	void sleepRunning (int quantumNum);

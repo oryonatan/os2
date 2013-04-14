@@ -21,16 +21,17 @@ int uthread_spawn(void (*f)(void)) {
 	if (id == FAIL)
 		{
 			cerr << "thread library error: maximum thread number exceeded" << endl;
+			schd->unblockSignals();
 			return FAIL;
 		}
 
 	schd->usedThreads[id] = shared_ptr<Thread> (new Thread(f, id));
 	schd->threads.readyQueue.push_back(schd->usedThreads[id]);
 
-	schd ->unblockSignals();
 	//TODO - remove after debugging
 	cerr << schd->threads.readyQueue.size() << endl;
-	return OK;
+	schd->unblockSignals();
+	return id;
 }
 
 int uthread_terminate(int tid) {
@@ -48,12 +49,7 @@ int uthread_terminate(int tid) {
 		exit(0);
 	}
 
-	//MARIA - please explain why? it allways returns okay...
-	if (schd->terminateThread(th)) {
-		//TODO - check if a function could not terminate because of
-		//thread library error
-		shutDown();
-	}
+	schd->terminateThread(th);
 
 	schd->unblockSignals();
 	return 0;
@@ -61,9 +57,11 @@ int uthread_terminate(int tid) {
 
 int uthread_suspend(int tid) {
 
+	schd->blockSignals();
 	if (tid == 0)
 	{
 		cerr << "thread library error: the main thread cannot be suspended";
+		schd->unblockSignals();
 		return FAIL;
 	}
 
@@ -71,39 +69,45 @@ int uthread_suspend(int tid) {
 	if (th == NULL)
 	{
 		//the error message was printed with getThread
+		schd->unblockSignals();
 		return FAIL;
 	}
 
 	if (th->threadState == SUSPENDED || th->threadState == SLEEPING)
 	{
+		schd->unblockSignals();
 		return OK;
 	}
 	else
 	{
+		schd->unblockSignals();
 		int ret_val = sigsetjmp(schd->threads.running->env,1);
 			  if (ret_val == 1) {
-				  schd->unblockSignals();
 			      return OK;
 			  }
 
 			schd->suspendThread(th);
-
 			siglongjmp(schd->threads.running->env,1);
 			return OK;
 	}
 
+	schd->unblockSignals();
 	return 0;
 }
 
 int uthread_resume(int tid) {
+
+	//schd->blockSignals();
 	shared_ptr<Thread> th = schd->getThread(tid);
 	if (th == NULL)
 	{
+		//schd->unblockSignals();
 		return FAIL;
 	}
 
 	schd->resumeThread(th);
 
+	//schd->unblockSignals();
 	return OK;
 }
 

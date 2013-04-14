@@ -1,0 +1,12 @@
+smdyshel, oryonatan
+Maria Dyshel (32212808), Yonathan Oren (300704327)
+EX: 2
+
+FILES: 
+address_translation.h -- Implementation of address translation as 
+		given by the course team
+thread.h -- Definition of the Thread struct
+thread.cpp -- Implementation of the Thread struct
+scheduler.h -- Definition of the Scheduler class
+scheduler.cpp -- Implementation of the Scheduler class
+uthreads.cpp -- Implementation of the uthreads library
