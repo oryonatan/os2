@@ -1,12 +1,5 @@
 #include "scheduler.h"
-//First initialize a scheduler , we need time handler to be static!
 
-////////////////////////////////////////////////////////////////////////
-/*				OS STUFF FROM DEMO_JUMP.cpp							////
- * /////////////////////////////////////////////////////////////////////
-we should probably split to Thread.h/Thread.cpp
-but meanwhile it's here
-*/
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
@@ -59,14 +52,13 @@ int Scheduler::allocateID() {
 
 }
 
-//Updates quantom
+//Updates the system when a new quantum was allocated
 void Scheduler::quantumUpdate(int sig) {
 	//TODO debug print
 	cerr << "Quantum Passed" << endl;
 	if (!threads.suspended.empty())
 	{
 		shared_ptr<Thread> temp = *(threads.suspended.begin());
-		int t;
 		cout << "Suspended thread: " << temp->id << endl;
 
 		//Debug
@@ -184,6 +176,8 @@ void Scheduler::eraseFromState(state originalState,
 		break;
 	case SLEEPING:
 		threads.sleeping.erase(threadToErase);
+		break;
+	case TERMINATED:
 		break;
 	case NONE_SPECIFIED:
 		break;

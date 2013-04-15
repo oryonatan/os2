@@ -37,25 +37,32 @@
 #define SIGISMEMBER_FAIL "system error: sigismember function fail"
 #define SETITIMER_FAIL "system error: failed to set the timer"
 using namespace std;
-
+//////////////////////////////////////////////////////////////////////////////////////
+// Scheduler class: used by all the library functions to manage the threads			//
+//////////////////////////////////////////////////////////////////////////////////////
 
 class Scheduler {
 public:
+	//setup the scheduler at library initialization: set the time and create the signal
+	//masks
 	int setup(int quantomLength);
+	//for debug purposes
 	void getDebugData ();
 	//TODO - do we need a destructor (erase used_threads etc.)
-
-	ThreadsStruct threads;
 	void setQuantumLength (int quantum_usecs);
 	shared_ptr<Thread> getThread (int tid);
+	//creates a new thread
+	int spawnThread(thread_functor);
+	//terminates an existing thread
 	void  terminateThread(shared_ptr<Thread>& targetThread);
+	//suspend a thread
 	void  suspendThread (shared_ptr<Thread>& targetThread);
+	//resumes a suspended
 	void resumeThread (shared_ptr <Thread>& targetThread);
 	void sleepRunning (int quantumNum);
 	void quantumUpdate(int sig);
 	//Moves a thread to the appropriate list
 	void moveThread(shared_ptr<Thread>, state);
-	int spawnThread(thread_functor);
 
 	//sets the mask for signal blocking
 	int setMask();
@@ -65,6 +72,7 @@ public:
 	void unblockSignals();
 
 	int allocateID();
+	ThreadsStruct threads;
 	unordered_map <int,shared_ptr<Thread> > usedThreads;
 	int quantom_usecs;
 	long quanta;
