@@ -3,10 +3,24 @@ Maria Dyshel (32212808), Yonathan Oren (300704327)
 EX: 2
 
 FILES: 
-address_translation.h -- Implementation of address translation as 
-		given by the course team
 thread.h -- Definition of the Thread struct
 thread.cpp -- Implementation of the Thread struct
 scheduler.h -- Definition of the Scheduler class
 scheduler.cpp -- Implementation of the Scheduler class
 uthreads.cpp -- Implementation of the uthreads library
+
+REMARKS:
+*Notice - using c11++ on a cool data structure we made up , check it out !
+
+*Including scheduler.h spawns a single GLOBAL scheduler called __schd , creating any variable with 
+the same name could (and probably would) result in serious problems. the scheduler is a static singleton and 
+must be spawned for anything to work! this is done because it is impossible to set a signal handler to a 
+non-static member method in C++. In general we wouldn't recommend (for future students) to build this project
+in C++ jumping aroung data structures can create havoc in the stack since some behavior is undefined in C++
+when using this function. (at least according to stackoverflow.org) and things can get realy messy when 
+trying to jump into member methods.
+
+ 
+
+ANSWERS:
+Nothing was asked :)
