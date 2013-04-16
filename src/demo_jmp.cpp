@@ -33,11 +33,11 @@ void f(void)
   int i = 0;
   while(1){
     ++i;
-    if ( i == 10001)
-        {
-        	int tid = uthread_get_tid();
-        	uthread_suspend(tid);
-        }
+//    if ( i == 10001)
+//        {
+//        	int tid = uthread_get_tid();
+//        	uthread_suspend(tid);
+//        }
     if (i % 300000000== 0) {
 
         printf("in f (%d)\n",i);
@@ -60,7 +60,10 @@ void g(void)
     ++i;
 
     if (i % 300000000 == 0) {
-        printf("in g (%d)\n",i);
+        cout <<"g is now self terminating" <<endl;
+        int myid = uthread_get_tid();
+        uthread_terminate(myid);
+        cerr << "NOT SUPPOSED TO GET HERE!";
 //        schd->getDebugData();
 //        cout << "suspending 1";
 //        uthread_suspend(1);
@@ -120,48 +123,62 @@ int main(void){
 //	schd = new Scheduler();
 	uthread_init(1000000);
 	uthread_spawn(f);
-//	uthread_spawn(g);
-	uthread_spawn(h); // sleepy
-//	uthread_spawn(m);
+	uthread_spawn(g);
+//	uthread_spawn(h); // sleepy
+	uthread_spawn(m);
 
-	int i;
-	for ( i = 0; i > -1; i++ )
-	{
-		if (i == 1000000004)
-		{
-			if (uthread_spawn (f))
-			{
-				cout << "ran out of thread ids" << endl;
-				return 0;
-			}
+	for (int i =0 ; i <1000000000;++i){
+		if (i % 100000000 == 0){
+			cout << "main:" << i << endl;
 		}
-
-		if (i % 1000000 == 0)
-		{
-			//schd->getDebugData();
-		}
-
-		if (i == 1000001)
-		{
-			if (!uthread_suspend (0))
-			{
-				int s;
-				cout << "main thread suspending itself didn't cause an error" << endl;
-				cin >> s;
-			}
-		}
-
-		if (i == 10002)
-		{
-			if (!uthread_sleep(5))
-			{
-				int s;
-				cout << "main thread sleeping itself didn't cause an error" << endl;
-				cin >> s;
-			}
-		}
-
 	}
+	uthread_terminate(1);
+	cout<<"kill 1" << endl;
+	uthread_spawn(f);
+	for (int i =0 ; i <1000000000;++i){
+		if (i % 100000000 == 0){
+			cout << "main:" << i << endl;
+		}
+	}
+	cout << "\n\nFIN\n\n" << endl;
+
+//	for ( i = 0; i > -1; i++ )
+//	{
+//		if (i == 1000000004)
+//		{
+//			if (uthread_spawn (f))
+//			{
+//				cout << "ran out of thread ids" << endl;
+//				return 0;
+//			}
+//		}
+//
+//		if (i % 1000000 == 0)
+//		{
+//			//schd->getDebugData();
+//		}
+//
+//		if (i == 1000001)
+//		{
+//			if (!uthread_suspend (0))
+//			{
+//				int s;
+//				cout << "main thread suspending itself didn't cause an error" << endl;
+//				cin >> s;
+//			}
+//		}
+//
+//		if (i == 10002)
+//		{
+//			if (!uthread_sleep(5))
+//			{
+//				int s;
+//				cout << "main thread sleeping itself didn't cause an error" << endl;
+//				cin >> s;
+//			}
+//		}
+//
+//	}
 
 	return 0;
 }

@@ -23,6 +23,7 @@
 #include "thread.h"
 #define NOT_SIGALARM  SIGVTALRM + 1
 
+#define THREAD_NOT_FOUND "thread library error: thread not found"
 #define MOVE_THREAD_FAIL "thread library error: Failed to move thread"
 #define SIGEMPTYSET_FAIL "system error: Failed to initiate empty signal mask"
 #define SIGADDSET_FAIL "system error: Failed to add signal to mask"
@@ -48,7 +49,6 @@ public:
 	int setup(int quantomLength);
 	//for debug purposes
 	void getDebugData ();
-	//TODO - do we need a destructor (erase used_threads etc.)
 	void setQuantumLength (int quantum_usecs);
 	shared_ptr<Thread> getThread (int tid);
 	//creates a new thread
@@ -77,12 +77,9 @@ public:
 	int quantom_usecs;
 	long quanta;
 private:
-
 	sigset_t mask;
 	struct itimerval tv;
 	struct sigaction action;
-
-
 	//resets the timer in case the threads were switched before a quantum expired
 	int resetTimer();
 	void setRunningThread(shared_ptr<Thread>);
@@ -95,20 +92,7 @@ private:
 extern Scheduler * schd;
 
 //Handler for timer events
-static void timeHandler(int signum) {
-	//cout << "Quantum has passed" << endl;
-	int ret_val = sigsetjmp(schd->threads.running->env,1);
-	  if (ret_val == 1) {
-	      return;
-	  }
-	schd->quantumUpdate(signum);
-	schd->startTimer();
-	siglongjmp(schd->threads.running->env,1);
-};
-
-
-
-
+void timeHandler(int signum);
 
 #endif
 

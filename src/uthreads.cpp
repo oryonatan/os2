@@ -27,16 +27,13 @@ int uthread_spawn(void (*f)(void)) {
 
 	schd->usedThreads[id] = shared_ptr<Thread> (new Thread(f, id));
 	schd->threads.readyQueue.push_back(schd->usedThreads[id]);
-
-	//TODO - remove after debugging
-	cerr << schd->threads.readyQueue.size() << endl;
+	//cerr << schd->threads.readyQueue.size() << endl; //Debug
 	schd->unblockSignals();
 	return id;
 }
 
 int uthread_terminate(int tid) {
 	schd->blockSignals();
-
 	shared_ptr<Thread> th = schd->getThread(tid);
 	if (th == NULL) {
 		cerr << "thread library error: thread not found" << endl;
@@ -50,7 +47,6 @@ int uthread_terminate(int tid) {
 	}
 
 	schd->terminateThread(th);
-
 	schd->unblockSignals();
 	return 0;
 }
@@ -97,7 +93,6 @@ int uthread_suspend(int tid) {
 
 int uthread_resume(int tid) {
 
-	//schd->blockSignals();
 	shared_ptr<Thread> th = schd->getThread(tid);
 	if (th == NULL)
 	{
@@ -106,8 +101,6 @@ int uthread_resume(int tid) {
 	}
 
 	schd->resumeThread(th);
-
-	//schd->unblockSignals();
 	return OK;
 }
 
@@ -129,7 +122,6 @@ int uthread_sleep(int num_quantums) {
 	  //one that has been put to sleep. But it has just started sleeping - we're giving it and additional
 	  //quantum
 	schd->sleepRunning(num_quantums+1);
-	//TODO - maybe startTimer should be here
 	siglongjmp(schd->threads.running->env,1);
 	schd->unblockSignals();
 	return OK;
@@ -151,10 +143,4 @@ int uthread_get_quantums(int tid) {
 	}
 
 	return th->totalQuanta;
-	/*try	{
-		return schd->usedThreads.at(tid)->totalQuanta;
-	}catch (out_of_range&)
-	{
-		return FAIL;
-	}*/
 }

@@ -3,7 +3,6 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
-#include "address_translation.h"
 using namespace std;
 
 //DEBUG :For debug purposes: the number of allowed shared pointers owning the thread
@@ -12,7 +11,7 @@ using namespace std;
 //Block signals
 void Scheduler::blockSignals() {
 	{
-		cout << "blocking signals" << endl;
+		//cout << "blocking signals" << endl; //Debug
 		sigset_t sigMask;
 		if (sigemptyset(&sigMask)) {
 			cerr << SIGEMPTYSET_FAIL << endl;
@@ -33,8 +32,7 @@ void Scheduler::blockSignals() {
 
 //Unblock signals
 void Scheduler::unblockSignals() {
-	//TODO debug remove
-	cout << "Unblocking signals" << endl;
+	//cout << "Unblocking signals" << endl; //Debug
 	if (sigprocmask(SIG_SETMASK, &mask, NULL)) {
 		cerr << UNBLOCK_FAIL << endl;
 		exit(1);
@@ -54,20 +52,11 @@ int Scheduler::allocateID() {
 
 //Updates the system when a new quantum was allocated
 void Scheduler::quantumUpdate(int sig) {
-	//TODO debug print
-	cerr << "Quantum Passed" << endl;
+	//cout << "Quantum Passed" << endl; //Debug
 	if (!threads.suspended.empty())
 	{
 		shared_ptr<Thread> temp = *(threads.suspended.begin());
-		cout << "Suspended thread: " << temp->id << endl;
-
-		//Debug
-		cerr << "readyThreads : \t";
-		for (auto th : threads.readyQueue)
-		{
-			cerr <<" "<< th->id;
-		}
-		cerr << endl;
+		//cout << "Suspended thread: " << temp->id << endl; //Debug
 	}
 
 	schd->quanta++;
@@ -88,8 +77,8 @@ void Scheduler::quantumUpdate(int sig) {
 		resetTimer();
 	}
 
-	//DEBUG
-	cout << threads.running->id << endl;
+
+	//cout << threads.running->id << endl;//DEBUG
 }
 
 //Gets a thread
@@ -98,7 +87,7 @@ shared_ptr<Thread> Scheduler::getThread(int tid) {
 	try {
 		result = usedThreads.at(tid);
 	} catch (out_of_range&) {
-		cerr << "thread library error: thread not found" << endl;
+		cerr << THREAD_NOT_FOUND << endl;
 		return NULL;
 	}
 	return result;
@@ -127,8 +116,7 @@ void Scheduler::suspendThread(shared_ptr<Thread>& targetThread) {
 void Scheduler::resumeThread(shared_ptr<Thread>& targetThread) {
 	state originalState = targetThread->threadState;
 	if (originalState == SUSPENDED) {
-		//TODO debug print
-		cout << "Thread " << targetThread->id << endl;
+		//cout << "Thread " << targetThread->id << endl; //Debug
 		moveThread(targetThread, READY);
 	}
 	return;
@@ -186,8 +174,7 @@ void Scheduler::eraseFromState(state originalState,
 
 //Sets the thread to running state,noves the running to ready
 void Scheduler::setRunningThread(shared_ptr<Thread> th) {
-	//TODO - debug print
-	//cerr << "new running thread " << th->id << " : " << th->env << endl;
+	//cerr << "new running thread " << th->id << " : " << th->env << endl; //Debug
 	if (threads.running) {
 		moveThread(threads.running, READY);
 	}
@@ -216,7 +203,6 @@ void Scheduler::moveThread(shared_ptr<Thread> th, state newState) {
 		threads.sleeping.insert(th);
 		break;
 	case TERMINATED:
-		//TODO - anything else to do in this case?
 		usedThreads.erase (th->id);
 		break;
 	default:
@@ -232,6 +218,7 @@ void  Scheduler::terminateThread(shared_ptr<Thread>& th) {
 
 	if (thState == RUNNING) {
 		quantumUpdate(NOT_SIGALARM);
+		siglongjmp(schd->threads.running->env,1);
 	}
 
 }
@@ -282,7 +269,7 @@ int Scheduler::startTimer() {
 	tv.it_interval.tv_usec = 0;
 	if(setitimer(ITIMER_VIRTUAL, &tv, NULL))
 	{
-		cerr<< "system error: failed to set timer"<<endl;
+		cerr<< SETITIMER_FAIL<<endl;
 		exit (1);
 	}
 
@@ -316,7 +303,7 @@ int isPending (int sig)
 int Scheduler::resetTimer ()
 {
 	//stopping the timer
-	/*if (setitimer (ITIMER_VIRTUAL,NULL, NULL))
+	if (setitimer (ITIMER_VIRTUAL,NULL, NULL))
 	{
 		cerr << SETITIMER_FAIL << endl;
 		exit(1);
@@ -344,21 +331,15 @@ int Scheduler::resetTimer ()
 			cerr << SIGWAIT_FAIL<<  endl;
 			exit(1);
 		}
-		//TODO debug printout
-		int temp;
-		cout << "Catching pending signal" << endl;
-		cin >> temp;
 	}
-*/
+
 
 	if(setitimer(ITIMER_VIRTUAL, &tv, NULL))
  	{
 		cerr<< "system error: failed to set timer"<<endl;
 		exit (1);
 	}
-
 	return OK;
-
 }
 
 
@@ -369,7 +350,7 @@ void Scheduler::getDebugData (){
 	if (!threads.suspended.empty())
 	{
 		shared_ptr<Thread> temp = *threads.suspended.begin();
-		cout<< "Thread resumed: " << uthread_resume(temp->id) << endl;
+		//cout<< "Thread resumed: " << uthread_resume(temp->id) << endl; //Debug
 		cerr << "readyThreads : \t";
 			for (auto th : threads.readyQueue)
 			{
@@ -413,6 +394,15 @@ void Scheduler::getDebugData (){
 //Define scheduler schd (global)
 Scheduler * schd = new Scheduler();
 
-
+void timeHandler(int signum) {
+	//cout << "Quantum has passed" << endl;
+	int ret_val = sigsetjmp(schd->threads.running->env,1);
+	  if (ret_val == 1) {
+	      return;
+	  }
+	schd->quantumUpdate(signum);
+	schd->startTimer();
+	siglongjmp(schd->threads.running->env,1);
+};
 
 

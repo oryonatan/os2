@@ -33,8 +33,7 @@ typedef void (*thread_functor)(void);
 //////////////////////////////////////////////////////////////////////////////
 
 struct Thread {
-	//Total number of quantums a thread has run
-	int totalQuanta;
+
 	// The threads stack
 	char* stack;
 	// The current state of the thread
@@ -47,6 +46,8 @@ struct Thread {
 	sigjmp_buf env;
 	//if a thread sleeps - how long it needs to sleep
 	long sleepQuantoms;
+	//Total number of quantums a thread has run
+	int totalQuanta;
 
 	Thread(thread_functor func, int threadID);
 	~Thread() {

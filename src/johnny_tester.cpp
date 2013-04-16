@@ -366,36 +366,36 @@ void test11() {
 	cout <<"[tester] spawn should not return -1: " <<uthread_spawn(foo) <<endl;
 	uthread_terminate(0);
 }
-
-int main(){
-//	test1();
-//	test2();
-//	test3();
+//
+//int main(){
+////	test1();
+////	test2();
+////	test3();
 //	test4();
-//	test5();
-//	test6();
-//	test7();
-//	test8();
-//	test9();
-//	test10();
-	test11();
-	int counter = 0, quantumCounter = 0;
-	while(true) {
-//		if (counter == INTERVAL) {
-//			counter = 0;
-//			cout << "[tester] ";
-//			cout << "I'M SEXY AND I KNOW IT, thread number : ["<< uthread_get_tid() <<"]" << endl;
-//		}
-//		if (quantumCounter == INTERVAL*3 ) {
-//			cout << "[test8] (MAIN) I'm MAIN, counting quantums: {" << uthread_get_quantums(uthread_get_tid()) << "}"<< endl;
-//			cout << "[test8] (MAIN) Total quantums: {" << uthread_get_total_quantums() << "}"<< endl;
-//			quantumCounter = 0;
-//		}
-		quantumCounter ++;
-		counter++;
-	}
-	return 0;
-}
+////	test5();
+////	test6();
+////	test7();
+////	test8();
+////	test9();
+////	test10();
+////	test11();
+////	int counter = 0, quantumCounter = 0;
+//	while(true) {
+//////		if (counter == INTERVAL) {
+//////			counter = 0;
+//////			cout << "[tester] ";
+//////			cout << "I'M SEXY AND I KNOW IT, thread number : ["<< uthread_get_tid() <<"]" << endl;
+//////		}
+//////		if (quantumCounter == INTERVAL*3 ) {
+//////			cout << "[test8] (MAIN) I'm MAIN, counting quantums: {" << uthread_get_quantums(uthread_get_tid()) << "}"<< endl;
+//////			cout << "[test8] (MAIN) Total quantums: {" << uthread_get_total_quantums() << "}"<< endl;
+//////			quantumCounter = 0;
+////		}
+////		quantumCounter ++;
+////		counter++;
+//	}
+////	return 0;
+//}
 
 
 
